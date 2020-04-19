@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  poetry-api:
+    image: node:latest
+    environment:
+      - MYSQL_HOST=$MYSQL_HOST
+      - MYSQL_PORT=$MYSQL_PORT
+      - MYSQL_DATABASE=$MYSQL_DATABASE
+      - MYSQL_USER=$MYSQL_USER
+      - MYSQL_PASSWORD=$MYSQL_PASSWORD
+    working_dir: /home/node/app
+    volumes:
+      - ./:/home/node/app
+    ports:
+      - 20003:3000
+    command: node app.js
+    #command: ping www_poetry-db_1
+    networks:
+      - poetry
+networks:
+ poetry:
+   external: true
