@@ -13,9 +13,8 @@ services:
     volumes:
       - ./:/home/node/app
     ports:
-      - 20003:3000
+      - 127.0.0.1:20002:3000
     command: node app.js
-    #command: ping www_poetry-db_1
     networks:
       - poetry
 networks:
