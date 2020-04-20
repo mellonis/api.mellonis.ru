@@ -3,17 +3,24 @@
   "name": "api.mellonis.ru",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "src/server.ts",
   "type": "module",
   "scripts": {
+    "build": "tsc",
+    "run": "node --require dotenv/config build/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ruslan Gilmullin",
   "license": "ISC",
   "dependencies": {
-    "@types/mysql": "^2.15.10",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
     "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.6",
+    "@types/mysql": "^2.15.10",
+    "tslint": "^6.1.1",
+    "typescript": "^3.8.3"
   }
 }
