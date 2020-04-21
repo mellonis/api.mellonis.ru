@@ -1,71 +1,71 @@
 import crypto from 'crypto';
-import mysql, {PoolConnection} from 'mysql';
+import mysql, { PoolConnection } from 'mysql';
 
 interface DbConnectionSettings {
-  host: string,
-  port: number,
-  database: string,
-  user: string,
-  password: string,
-  debug: boolean
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  debug: boolean;
 }
 
 interface SectionFromDb {
-  id: string,
-  typeId: number,
-  title: string,
-  description: string | null,
-  settings: string | null
+  id: string;
+  typeId: number;
+  title: string;
+  description: string | null;
+  settings: string | null;
 }
 
 interface Section {
-  id: string,
-  typeId: number,
-  title: string,
-  description: string | null,
-  settings: object | null
+  id: string;
+  typeId: number;
+  title: string;
+  description: string | null;
+  settings: object | null;
 }
 
 interface SectionType {
-  id: number,
-  title: string
+  id: number;
+  title: string;
 }
 
 interface ThingCategory {
-  id: number,
-  title: string
+  id: number;
+  title: string;
 }
 
 interface ThingStatus {
-  id: number,
-  title: string
+  id: number;
+  title: string;
 }
 
 interface ThingNote {
-  id: number,
-  text: string
+  id: number;
+  text: string;
 }
 
 interface ThingFromDb {
-  id: number,
-  position: number,
-  categoryId: number,
-  title: string | null,
-  startDate: string | null,
-  finishDate: string | null,
-  body: string,
-  meta: string | null
+  id: number;
+  position: number;
+  categoryId: number;
+  title: string | null;
+  startDate: string | null;
+  finishDate: string | null;
+  body: string;
+  meta: string | null;
 }
 
 interface Thing {
-  id: number,
-  position: number,
-  categoryId: number,
-  title: string | null,
-  startDate: string | null,
-  finishDate: string | null,
-  body: string | null,
-  meta: string | null
+  id: number;
+  position: number;
+  categoryId: number;
+  title: string | null;
+  startDate: string | null;
+  finishDate: string | null;
+  body: string | null;
+  meta: string | null;
 }
 
 export default class Model {
@@ -73,7 +73,13 @@ export default class Model {
   readonly #requestTypeToHashMap: Map<string, string> | null = null;
   readonly #dbConnectionPool: mysql.Pool;
 
-  constructor({dbConnectionSettings, cacheEnabled}: { dbConnectionSettings: DbConnectionSettings, cacheEnabled: boolean }) {
+  constructor({
+    dbConnectionSettings,
+    cacheEnabled,
+  }: {
+    dbConnectionSettings: DbConnectionSettings;
+    cacheEnabled: boolean;
+  }) {
     this.#dbConnectionPool = mysql.createPool({
       ...dbConnectionSettings,
       waitForConnections: true,
@@ -86,32 +92,40 @@ export default class Model {
   }
 
   private query(queryString: string, parameters: any[] = []): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      this.#dbConnectionPool.getConnection((error, connection) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(connection);
-        }
-      });
-    })
-      // @ts-ignore
-      .then((connection: PoolConnection) => {
-        return new Promise((resolve, reject) => {
-          connection.query(queryString, parameters, (error, result: any[]) => {
-            connection.release();
-
-            if (error) {
-              reject(error);
-            } else {
-              resolve(result);
-            }
-          });
+    return (
+      new Promise((resolve, reject) => {
+        this.#dbConnectionPool.getConnection((error, connection) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(connection);
+          }
         });
-      });
+      })
+        // @ts-ignore
+        .then((connection: PoolConnection) => {
+          return new Promise((resolve, reject) => {
+            connection.query(
+              queryString,
+              parameters,
+              (error, result: any[]) => {
+                connection.release();
+
+                if (error) {
+                  reject(error);
+                } else {
+                  resolve(result);
+                }
+              }
+            );
+          });
+        })
+    );
   }
 
-  getHashedResponse(hash: string | null): { hash: string, response: any[] } | null {
+  getHashedResponse(
+    hash: string | null
+  ): { hash: string; response: any[] } | null {
     if (hash && this.isValidHash(hash)) {
       return {
         response: this.#cache!.get(hash)!,
@@ -126,10 +140,15 @@ export default class Model {
     return this.#cache?.has(hash) ?? false;
   }
 
-  setHashedResponse(requestType: string, response: any[]): { hash: string | null, response: any[] } {
+  setHashedResponse(
+    requestType: string,
+    response: any[]
+  ): { hash: string | null; response: any[] } {
     if (this.#cache && this.#requestTypeToHashMap) {
       if (this.#requestTypeToHashMap.has(requestType)) {
-        return this.getHashedResponse(this.#requestTypeToHashMap.get(requestType)!)!;
+        return this.getHashedResponse(
+          this.#requestTypeToHashMap.get(requestType)!
+        )!;
       }
 
       const representation = JSON.stringify(response);
@@ -170,7 +189,8 @@ export default class Model {
       return Promise.resolve(responseFromCache);
     }
 
-    return this.query(`
+    return this.query(
+      `
       SELECT
         section_identifier AS id,
         section_type_id AS typeId,
@@ -178,24 +198,31 @@ export default class Model {
         section_description AS description,
         settings
       FROM v_sections_info;
-    `)
-      .then((sectionsFromDb: SectionFromDb[]) => sectionsFromDb
-        .filter((aSectionFromDb) => aSectionFromDb.typeId > 0)
-        .map((sectionItem) => {
-          const section: Section = {
-            ...sectionItem,
-            settings: sectionItem.settings ? JSON.parse(sectionItem.settings) : {},
-          };
+    `
+    )
+      .then((sectionsFromDb: SectionFromDb[]) =>
+        sectionsFromDb
+          .filter((aSectionFromDb) => aSectionFromDb.typeId > 0)
+          .map((sectionItem) => {
+            const section: Section = {
+              ...sectionItem,
+              settings: sectionItem.settings
+                ? JSON.parse(sectionItem.settings)
+                : {},
+            };
 
-          return section;
-        })
+            return section;
+          })
       )
       .then((response) => this.setHashedResponse(requestType, response));
   }
 
   getSectionThings(sectionIdentifier: string) {
     const requestType = `getSectionThings:${sectionIdentifier}`;
-    const responseFromCache = this.getHashedResponse(requestType) as { hash: string, response: Thing[] } | null;
+    const responseFromCache = this.getHashedResponse(requestType) as {
+      hash: string;
+      response: Thing[];
+    } | null;
 
     if (responseFromCache) {
       return Promise.resolve(responseFromCache);
@@ -204,11 +231,14 @@ export default class Model {
     const restrictedCategories = [4];
 
     return this.getSections()
-      .then(({response: sections}: { response: { id: string }[] }) => {
-        const section = sections.find((aSection) => aSection.id === sectionIdentifier);
+      .then(({ response: sections }: { response: { id: string }[] }) => {
+        const section = sections.find(
+          (aSection) => aSection.id === sectionIdentifier
+        );
 
         if (section) {
-          return this.query(`
+          return this.query(
+            `
           SELECT
             thing_id AS id,
             thing_position_in_section AS position,
@@ -222,25 +252,39 @@ export default class Model {
             v_things_info
           WHERE
             section_identifier = ?;
-        `, [sectionIdentifier]);
+        `,
+            [sectionIdentifier]
+          );
         }
 
         return Promise.reject(new Error('NOT_FOUND'));
       })
-      .then((thingsFromDb: ThingFromDb[]) => thingsFromDb
-        .map((aThingFromDb) => {
-          const thing: Thing = {
-            ...aThingFromDb,
-            meta: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.meta,
-            title: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.title,
-            startDate: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.startDate,
-            finishDate: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.finishDate,
-            body: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.body,
-          };
+      .then((thingsFromDb: ThingFromDb[]) =>
+        thingsFromDb
+          .map((aThingFromDb) => {
+            const thing: Thing = {
+              ...aThingFromDb,
+              meta: restrictedCategories.includes(aThingFromDb.categoryId)
+                ? null
+                : aThingFromDb.meta,
+              title: restrictedCategories.includes(aThingFromDb.categoryId)
+                ? null
+                : aThingFromDb.title,
+              startDate: restrictedCategories.includes(aThingFromDb.categoryId)
+                ? null
+                : aThingFromDb.startDate,
+              finishDate: restrictedCategories.includes(aThingFromDb.categoryId)
+                ? null
+                : aThingFromDb.finishDate,
+              body: restrictedCategories.includes(aThingFromDb.categoryId)
+                ? null
+                : aThingFromDb.body,
+            };
 
-          return thing;
-        })
-        .sort((a, b) => a.position - b.position))
+            return thing;
+          })
+          .sort((a, b) => a.position - b.position)
+      )
       .then((response) => this.setHashedResponse(requestType, response));
   }
 
@@ -252,16 +296,19 @@ export default class Model {
       return Promise.resolve(responseFromCache);
     }
 
-    return this.query(`
+    return this.query(
+      `
       SELECT
         id,
         title
       FROM
         section_type;
-    `)
-      .then((sectionTypes: SectionType[]) => sectionTypes
-        .filter((sectionType) => sectionType.id > 0)
-        .sort((a, b) => a.id - b.id)
+    `
+    )
+      .then((sectionTypes: SectionType[]) =>
+        sectionTypes
+          .filter((sectionType) => sectionType.id > 0)
+          .sort((a, b) => a.id - b.id)
       )
       .then((response) => this.setHashedResponse(requestType, response));
   }
@@ -274,28 +321,34 @@ export default class Model {
       return Promise.resolve(responseFromCache);
     }
 
-    return this.query(`
+    return this.query(
+      `
         SELECT
           id,
           title
         FROM
           thing_category;
-      `)
-      .then((thingCategories: ThingCategory[]) => thingCategories
-        .sort((a, b) => a.id - b.id)
+      `
+    )
+      .then((thingCategories: ThingCategory[]) =>
+        thingCategories.sort((a, b) => a.id - b.id)
       )
       .then((response) => this.setHashedResponse(requestType, response));
   }
 
   getThingNotes(thingId: number) {
     const requestType = `getThingNotes:${thingId}`;
-    const responseFromCache = this.getHashedResponse(requestType) as { hash: string, response: string[] } | null;
+    const responseFromCache = this.getHashedResponse(requestType) as {
+      hash: string;
+      response: string[];
+    } | null;
 
     if (responseFromCache) {
       return Promise.resolve(responseFromCache);
     }
 
-    return this.query(`
+    return this.query(
+      `
       SELECT
         id,
         text
@@ -303,10 +356,13 @@ export default class Model {
         thing_note
       WHERE
         r_thing_id = ?;
-    `, [thingId])
-      .then((thingNotes: ThingNote[]) => thingNotes
-        .sort((a, b) => a.id - b.id)
-        .map((thingNote) => thingNote.text)
+    `,
+      [thingId]
+    )
+      .then((thingNotes: ThingNote[]) =>
+        thingNotes
+          .sort((a, b) => a.id - b.id)
+          .map((thingNote) => thingNote.text)
       )
       .then((response) => this.setHashedResponse(requestType, response));
   }
@@ -319,14 +375,16 @@ export default class Model {
       return Promise.resolve(responseFromCache);
     }
 
-    return this.query(`
+    return this.query(
+      `
       SELECT id,
         title
       FROM
         thing_status;
-    `)
-      .then((thingStatuses: ThingStatus[]) => thingStatuses
-        .sort((a, b) => a.id - b.id)
+    `
+    )
+      .then((thingStatuses: ThingStatus[]) =>
+        thingStatuses.sort((a, b) => a.id - b.id)
       )
       .then((response) => this.setHashedResponse(requestType, response));
   }
