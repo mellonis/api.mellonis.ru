@@ -101,10 +101,7 @@ app.get('/sections', (request, response) => {
     .catch((error: Error) => errorHandler(request, response, error));
 });
 
-app
-
-
-  .get('/sections/:sectionIdentifier', (request, response) => {
+app.get('/sections/:sectionIdentifier', (request, response) => {
   model
     .getSectionThings(request.params.sectionIdentifier)
     .then((result) => resultHandler(request, response, result))
