@@ -90,6 +90,6 @@ app.get('/thingNotes/:thingId', (request, response) => {
     model
         .getThingNotes(Number(request.params.thingId))
         .then((result) => resultHandler(request, response, result))
-        .catch((error) => errorHandler(request, response, error));
+        .catch((error) => errorHandler(request, response, error.q));
 });
 app.listen(3000);
