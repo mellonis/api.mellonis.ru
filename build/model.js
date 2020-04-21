@@ -15,7 +15,7 @@ var _cache, _requestTypeToHashMap, _dbConnectionPool;
 import crypto from 'crypto';
 import mysql from 'mysql';
 export default class Model {
-    constructor({ dbConnectionSettings, cacheEnabled }) {
+    constructor({ dbConnectionSettings, cacheEnabled, }) {
         _cache.set(this, null);
         _requestTypeToHashMap.set(this, null);
         _dbConnectionPool.set(this, void 0);
@@ -29,7 +29,7 @@ export default class Model {
         }
     }
     query(queryString, parameters = []) {
-        return new Promise((resolve, reject) => {
+        return (new Promise((resolve, reject) => {
             __classPrivateFieldGet(this, _dbConnectionPool).getConnection((error, connection) => {
                 if (error) {
                     reject(error);
@@ -52,7 +52,7 @@ export default class Model {
                     }
                 });
             });
-        });
+        }));
     }
     getHashedResponse(hash) {
         if (hash && this.isValidHash(hash)) {
@@ -115,7 +115,9 @@ export default class Model {
             .map((sectionItem) => {
             const section = {
                 ...sectionItem,
-                settings: sectionItem.settings ? JSON.parse(sectionItem.settings) : {},
+                settings: sectionItem.settings
+                    ? JSON.parse(sectionItem.settings)
+                    : {},
             };
             return section;
         }))
@@ -154,11 +156,21 @@ export default class Model {
             .map((aThingFromDb) => {
             const thing = {
                 ...aThingFromDb,
-                meta: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.meta,
-                title: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.title,
-                startDate: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.startDate,
-                finishDate: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.finishDate,
-                body: restrictedCategories.includes(aThingFromDb.categoryId) ? null : aThingFromDb.body,
+                meta: restrictedCategories.includes(aThingFromDb.categoryId)
+                    ? null
+                    : aThingFromDb.meta,
+                title: restrictedCategories.includes(aThingFromDb.categoryId)
+                    ? null
+                    : aThingFromDb.title,
+                startDate: restrictedCategories.includes(aThingFromDb.categoryId)
+                    ? null
+                    : aThingFromDb.startDate,
+                finishDate: restrictedCategories.includes(aThingFromDb.categoryId)
+                    ? null
+                    : aThingFromDb.finishDate,
+                body: restrictedCategories.includes(aThingFromDb.categoryId)
+                    ? null
+                    : aThingFromDb.body,
             };
             return thing;
         })
@@ -196,8 +208,7 @@ export default class Model {
         FROM
           thing_category;
       `)
-            .then((thingCategories) => thingCategories
-            .sort((a, b) => a.id - b.id))
+            .then((thingCategories) => thingCategories.sort((a, b) => a.id - b.id))
             .then((response) => this.setHashedResponse(requestType, response));
     }
     getThingNotes(thingId) {
@@ -232,8 +243,7 @@ export default class Model {
       FROM
         thing_status;
     `)
-            .then((thingStatuses) => thingStatuses
-            .sort((a, b) => a.id - b.id))
+            .then((thingStatuses) => thingStatuses.sort((a, b) => a.id - b.id))
             .then((response) => this.setHashedResponse(requestType, response));
     }
 }

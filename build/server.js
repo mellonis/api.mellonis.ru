@@ -6,7 +6,7 @@ const dbConnectionSettings = {
     database: String(process.env.MYSQL_DATABASE),
     user: String(process.env.MYSQL_USER),
     password: String(process.env.MYSQL_PASSWORD),
-    debug: process.env.MYSQL_LOG_CONNECTION === 'true'
+    debug: process.env.MYSQL_LOG_CONNECTION === 'true',
 };
 const cacheEnabled = process.env.CACHE_ENABLED !== 'false';
 const accessControlAllowOrigin = (process.env.ACCESS_CONTROL_ALLOW_ORIGIN || '').trim();
@@ -27,25 +27,20 @@ app.use((request, response, next) => {
 function errorHandler(request, response, error) {
     // tslint:disable-next-line:no-console
     console.error(`${new Date()} [ERROR] ${error.message}`);
-    response
-        .sendStatus(500);
+    response.sendStatus(500);
 }
 function resultHandler(request, response, { response: modelResponse, hash }) {
     if (cacheEnabled && hash) {
-        response
-            .set({
+        response.set({
             ETag: hash,
         });
     }
     if (accessControlAllowOrigin) {
-        response
-            .set({
+        response.set({
             'Access-Control-Allow-Origin': '*',
         });
     }
-    response
-        .contentType('application/json')
-        .send(modelResponse);
+    response.contentType('application/json').send(modelResponse);
 }
 app.post('/clearCache', (request, response) => {
     model
@@ -54,27 +49,32 @@ app.post('/clearCache', (request, response) => {
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/sectionTypes', (request, response) => {
-    model.getSectionTypes()
+    model
+        .getSectionTypes()
         .then((result) => resultHandler(request, response, result))
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/thingStatuses', (request, response) => {
-    model.getThingStatuses()
+    model
+        .getThingStatuses()
         .then((result) => resultHandler(request, response, result))
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/thingCategories', (request, response) => {
-    model.getThingCategories()
+    model
+        .getThingCategories()
         .then((result) => resultHandler(request, response, result))
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/sections', (request, response) => {
-    model.getSections()
+    model
+        .getSections()
         .then((result) => resultHandler(request, response, result))
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/sections/:sectionIdentifier', (request, response) => {
-    model.getSectionThings(request.params.sectionIdentifier)
+    model
+        .getSectionThings(request.params.sectionIdentifier)
         .then((result) => resultHandler(request, response, result))
         .catch((error) => {
         if (error.message === 'NOT_FOUND') {
@@ -87,8 +87,9 @@ app.get('/sections/:sectionIdentifier', (request, response) => {
         .catch((error) => errorHandler(request, response, error));
 });
 app.get('/thingNotes/:thingId', (request, response) => {
-    model.getThingNotes(Number(request.params.thingId))
+    model
+        .getThingNotes(Number(request.params.thingId))
         .then((result) => resultHandler(request, response, result))
-        .catch((error) => errorHandler(request, response, error));
+        .catch((error) => errorHandler(request, response, error.q));
 });
 app.listen(3000);
