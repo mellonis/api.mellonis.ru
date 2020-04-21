@@ -37,7 +37,7 @@ function resultHandler(request, response, { response: modelResponse, hash }) {
     }
     if (accessControlAllowOrigin) {
         response.set({
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': accessControlAllowOrigin,
         });
     }
     response.contentType('application/json').send(modelResponse);

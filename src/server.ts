@@ -59,7 +59,7 @@ function resultHandler(
 
   if (accessControlAllowOrigin) {
     response.set({
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': accessControlAllowOrigin,
     });
   }
 
