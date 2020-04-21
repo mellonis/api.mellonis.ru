@@ -119,7 +119,7 @@ app.get('/thingNotes/:thingId', (request, response) => {
   model
     .getThingNotes(Number(request.params.thingId))
     .then((result) => resultHandler(request, response, result))
-    .catch((error: Error) => errorHandler(request, response, error.q));
+    .catch((error: Error) => errorHandler(request, response, error));
 });
 
 app.listen(3000);
