@@ -5,6 +5,15 @@ info:
 servers:
   -   url: 'https://api.mellonis.ru'
 paths:
+  /clearCache:
+    post:
+      summary: 'Clears server cache'
+      operationId: clearCache
+      tag:
+        - cache
+      responses:
+        '200':
+           description: 'Cache has been cleared'
   /sectionTypes:
     get:
       summary: 'Returns list of section types'
