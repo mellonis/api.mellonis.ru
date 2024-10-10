@@ -1,0 +1,14 @@
+{
+	"extends": "@tsconfig/node22/tsconfig.json",
+	"include": [
+		"src/**/*"
+	],
+	"exclude": [
+		"node_modules",
+		"**/*.spec.ts"
+	],
+	"compilerOptions": {
+		"strict": true,
+		"outDir": "./build"
+	}
+}
