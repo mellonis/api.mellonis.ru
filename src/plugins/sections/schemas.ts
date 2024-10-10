@@ -37,7 +37,7 @@ export const addSchemas = (fastify: FastifyInstance) => {
 				position: { type: 'number' },
 				categoryId: { type: 'number', enum: [1, 2, 3, 4] },
 				title: { type: 'string' },
-				firstLines: { type: 'string' },
+				firstLines: { type: 'array', items: { type: 'string' } },
 				startDate: { type: 'string' },
 				finishDate: { type: 'string' },
 				text: { type: 'string' },

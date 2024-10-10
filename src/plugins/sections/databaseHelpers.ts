@@ -67,7 +67,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			position,
 			categoryId,
 			title: title ?? undefined,
-			firstLines: firstLines ?? undefined,
+			firstLines: (firstLines ?? undefined) ? firstLines.split('\n') : undefined,
 			startDate: startDate ?? undefined,
 			finishDate: finishDate ?? undefined,
 			text,
@@ -88,7 +88,7 @@ export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Pr
 				if (!result.has(thingId)) {
 					result.set(thingId, []);
 				}
-				
+
 				result.get(thingId)!.push(text);
 
 				return result;
