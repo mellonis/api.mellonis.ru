@@ -1,16 +1,15 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
-import { addSchemas } from './schemas.js';
 import { getSections, getSectionThings, getThingsNotes } from './databaseHelpers.js';
+import { sectionsResponse, thingsRequest, thingsResponse } from './schemas.js';
+
 
 export async function sectionsPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: sections...');
 
-	addSchemas(fastify);
-
 	fastify.get('/', {
 		schema: {
 			response: {
-				200: { $ref: 'sectionsResponse' },
+				200: sectionsResponse,
 			},
 		},
 		handler: async (_request, reply) => {
@@ -23,15 +22,9 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 
 	fastify.get('/:id', {
 		schema: {
-			params: {
-				type: 'object',
-				properties: {
-					id: { type: 'string' },
-				},
-				required: ['id'],
-			},
+			params: thingsRequest,
 			response: {
-				200: { $ref: 'sectionThingsResponse' },
+				200: thingsResponse,
 			},
 		},
 		handler: async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {

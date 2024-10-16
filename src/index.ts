@@ -1,6 +1,10 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import { sectionsPlugin } from './plugins/sections/sections.js';
 import fastifyMySQL, { MySQLPromisePool } from '@fastify/mysql';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
+import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
+import { sectionsPlugin } from './plugins/sections/sections.js';
+import { version } from '../package.json';
 
 const fastify: FastifyInstance = Fastify({
 	logger: {
@@ -10,7 +14,9 @@ const fastify: FastifyInstance = Fastify({
 	},
 });
 
-//TODO: move mysql to databasePlugin
+fastify.setValidatorCompiler(validatorCompiler);
+fastify.setSerializerCompiler(serializerCompiler);
+
 declare module 'fastify' {
 	interface FastifyInstance {
 		mysql: MySQLPromisePool;
@@ -20,6 +26,20 @@ declare module 'fastify' {
 fastify.register(fastifyMySQL, {
 	promise: true,
 	connectionString: process.env.CONNECTION_STRING,
+});
+
+fastify.register(fastifySwagger, {
+	openapi: {
+		info: {
+			title: 'Documentation for Poetry API',
+			version,
+		},
+	},
+	transform: jsonSchemaTransform,
+});
+
+fastify.register(fastifySwaggerUi, {
+	routePrefix: '/docs',
 });
 
 fastify.register(sectionsPlugin, { prefix: '/sections' });

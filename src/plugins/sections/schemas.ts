@@ -1,50 +1,52 @@
-import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 
-export const addSchemas = (fastify: FastifyInstance) => {
-	fastify.addSchema(({
-		$id: 'sectionsResponse',
-		type: 'array',
-		items: {
-			type: 'object',
-			properties: {
-				id: { type: 'string' },
-				typId: { type: 'number', enum: [1, 2, 3] },
-				title: { type: 'string' },
-				description: { type: 'string' },
-				settings: {
-					type: 'object',
-					properties: {
-						showAll: { type: 'boolean' },
-						thingsOrder: { type: 'number', enum: [-1, 1] },
-					},
-					additionalProperties: false,
-					required: ['showAll', 'thingsOrder'],
-				},
-				thingsCount: { type: 'number', minimum: 0 },
-			},
-			additionalProperties: false,
-			required: ['id', 'typeId', 'title', 'settings', 'thingsCount'],
-		},
-	}));
+enum SectionType {
+	Common = 1,
+	Ring,
+	CollectionOfPoems
+}
 
-	fastify.addSchema(({
-		$id: 'sectionThingsResponse',
-		type: 'array',
-		items: {
-			type: 'object',
-			properties: {
-				id: { type: 'number' },
-				position: { type: 'number' },
-				categoryId: { type: 'number', enum: [1, 2, 3, 4] },
-				title: { type: 'string' },
-				firstLines: { type: 'array', items: { type: 'string' } },
-				startDate: { type: 'string' },
-				finishDate: { type: 'string' },
-				text: { type: 'string' },
-				notes: { type: 'array', items: { type: 'string' } },
-			},
-			additionalProperties: false,
-			required: ['id', 'position', 'categoryId', 'finishDate', 'text'],
-		},
-	}));
-};
+enum SectionThingsOrder {
+	Asc = 1,
+	Original = 0,
+	Desc = -1,
+}
+
+enum ThingCategory {
+	Poetry = 1,
+	Proze,
+	Tlya,
+	Though
+}
+
+export const sectionsResponse = z.array(
+	z.object({
+		id: z.string(),
+		typeId: z.nativeEnum(SectionType),
+		title: z.string(),
+		description: z.optional(z.string()),
+		settings: z.object({
+			showAll: z.boolean(),
+			thingsOrder: z.nativeEnum(SectionThingsOrder),
+		}),
+		thingsCount: z.number().int().min(0),
+	}),
+);
+
+export const thingsRequest = z.object({
+	id: z.string(),
+});
+
+export const thingsResponse = z.array(
+	z.object({
+		id: z.number(),
+		position: z.number(),
+		categoryId: z.nativeEnum(ThingCategory),
+		title: z.optional(z.string()),
+		firstLines: z.optional(z.array(z.string())),
+		startDate: z.optional(z.string().date()),
+		finishDate: z.string().date(),
+		text: z.string(),
+		notes: z.optional(z.array(z.string())),
+	}),
+);
