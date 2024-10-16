@@ -15,7 +15,8 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json tsconfig.json ./
+COPY src ./src
 
 
 RUN npm run build;
@@ -31,4 +32,4 @@ COPY --from=builder /app/build ./build
 
 EXPOSE 3000
 
-CMD ["node", "build/index.js"]
+#CMD ["node", "build/index.js"]

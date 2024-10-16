@@ -9,7 +9,6 @@
 	],
 	"compilerOptions": {
 		"strict": true,
-		"outDir": "./build",
-		"resolveJsonModule": true
+		"outDir": "./build"
 	}
 }

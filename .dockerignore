@@ -1,5 +1,9 @@
 Dockerfile
 .dockerignore
 node_modules
+build
 .git
 .idea
+.env
+.gitignore
+api.mellonis.ru.tar

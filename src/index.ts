@@ -4,7 +4,6 @@ import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { sectionsPlugin } from './plugins/sections/sections.js';
-import { version } from '../package.json';
 
 const fastify: FastifyInstance = Fastify({
 	logger: {
@@ -32,7 +31,7 @@ fastify.register(fastifySwagger, {
 	openapi: {
 		info: {
 			title: 'Documentation for Poetry API',
-			version,
+			version: '2.0.0',
 		},
 	},
 	transform: jsonSchemaTransform,
