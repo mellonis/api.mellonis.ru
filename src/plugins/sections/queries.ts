@@ -15,8 +15,8 @@ export const sectionThingsQuery = `
       thing_category_id AS categoryId,
       thing_title AS title,
       thing_first_lines AS firstLines,
-      thing_start_date AS startDate,
-      thing_finish_date AS finishDate,
+      cast(thing_start_date AS char) AS startDate,
+      cast(thing_finish_date AS char) AS finishDate,
       thing_text AS text,
     	thing_seo_description as seoDescription,
     	thing_seo_keywords as seoKeywords
