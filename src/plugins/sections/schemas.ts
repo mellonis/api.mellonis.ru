@@ -48,5 +48,7 @@ export const thingsResponse = z.array(
 		finishDate: z.string().date(),
 		text: z.string(),
 		notes: z.optional(z.array(z.string())),
+		seoDescription: z.optional(z.string()),
+		seoKeywords: z.optional(z.string()),
 	}),
 );

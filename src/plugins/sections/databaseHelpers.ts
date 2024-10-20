@@ -46,6 +46,8 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 	startDate?: string,
 	finishDate?: string,
 	text: string,
+	seoDescription?: string,
+	seoKeywords?: string,
 }[]> => {
 	const connection = await mysql.getConnection();
 
@@ -62,6 +64,8 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 				startDate,
 				finishDate,
 				text,
+				seoDescription,
+				seoKeywords,
 			}) => ({
 			id,
 			position,
@@ -71,6 +75,8 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			startDate: startDate ?? undefined,
 			finishDate: finishDate ?? undefined,
 			text,
+			seoDescription: seoDescription ?? undefined,
+			seoKeywords: seoKeywords ?? undefined,
 		}));
 	} finally {
 		connection.release();
