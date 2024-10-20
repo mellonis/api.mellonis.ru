@@ -1,0 +1,41 @@
+name: Deploy
+
+on:
+  pull_request:
+    branches:
+      - master
+    types:
+      - closed
+
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+
+jobs:
+  build-image:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build image
+        run: docker build . -t api.mellonis.ru
+      - name: Save image
+        run: docker save -o api.mellonis.ru.tar api.mellonis.ru
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+      - name: Copy image
+        env:
+          SSH_HOST: ${{secrets.SSH_HOST}}
+          SSH_USER: ${{secrets.SSH_USER}}
+          SSH_TARGET: ${{secrets.SSH_TARGET}}
+        run: scp -o StrictHostKeyChecking=no ./api.mellonis.ru.tar $SSH_USER@$SSH_HOST:$SSH_TARGET
+      - name: Run container
+        env:
+          SSH_HOST: ${{secrets.SSH_HOST}}
+          SSH_USER: ${{secrets.SSH_USER}}
+          SSH_TARGET: ${{secrets.SSH_TARGET}}
+        run: ssh $SSH_USER@$SSH_HOST "cd $SSH_TARGET && ./run-poetry.api.sh"
+
+
