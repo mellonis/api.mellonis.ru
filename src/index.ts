@@ -19,10 +19,6 @@ fastify.register(databasePlugin);
 fastify.register(swaggerPlugin);
 fastify.register(sectionsPlugin, { prefix: '/sections' });
 
-fastify.get('/ping', (_, reply) => {
-	reply.code(200).send('pong');
-});
-
 async function main() {
 	await fastify.listen({
 		host: '0.0.0.0',
