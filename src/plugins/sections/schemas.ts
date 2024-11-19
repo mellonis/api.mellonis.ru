@@ -50,5 +50,13 @@ export const thingsResponse = z.array(
 		notes: z.optional(z.array(z.string())),
 		seoDescription: z.optional(z.string()),
 		seoKeywords: z.optional(z.string()),
+		info: z.optional(z.object({
+			attachments: z.optional(z.object({
+				audio: z.optional(z.array(z.object({
+					preload: z.optional(z.enum(['none'])),
+					sources: z.array(z.object({ src: z.string(), type: z.enum(['audio/mpeg']) })),
+				}))),
+			})),
+		})),
 	}),
 );
