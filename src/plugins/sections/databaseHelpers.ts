@@ -66,6 +66,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 				text,
 				seoDescription,
 				seoKeywords,
+				info,
 			}) => ({
 			id,
 			position,
@@ -77,6 +78,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			text,
 			seoDescription: seoDescription ?? undefined,
 			seoKeywords: seoKeywords ?? undefined,
+			info: info ? JSON.parse(info) : undefined,
 		}));
 	} finally {
 		connection.release();

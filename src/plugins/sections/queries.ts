@@ -19,7 +19,8 @@ export const sectionThingsQuery = `
       cast(thing_finish_date AS char) AS finishDate,
       thing_text AS text,
     	thing_seo_description as seoDescription,
-    	thing_seo_keywords as seoKeywords
+    	thing_seo_keywords as seoKeywords,
+			thing_info as info
 	FROM
 		v_things_info
 	WHERE
