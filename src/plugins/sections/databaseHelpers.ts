@@ -72,7 +72,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			position,
 			categoryId,
 			title: title ?? undefined,
-			firstLines: (firstLines ?? undefined) ? firstLines.split('\n') : undefined,
+			firstLines: (firstLines ?? undefined) ? firstLines.replaceAll('\r', '').split('\n') : undefined,
 			startDate: startDate ?? undefined,
 			finishDate: finishDate ?? undefined,
 			text,
