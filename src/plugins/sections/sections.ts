@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { getSections, getSectionThings, getThingsNotes } from './databaseHelpers.js';
 import { sectionsResponse, thingsRequest, thingsResponse } from './schemas.js';
 
@@ -25,6 +26,7 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 			params: thingsRequest,
 			response: {
 				200: thingsResponse,
+				404: z.void(),
 			},
 		},
 		handler: async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
