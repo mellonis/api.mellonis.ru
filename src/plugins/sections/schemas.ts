@@ -14,20 +14,20 @@ enum SectionThingsOrder {
 
 enum ThingCategory {
 	Poetry = 1,
-	Proze,
+	Prose,
 	Tlya,
-	Though
+	Thought
 }
 
 export const sectionsResponse = z.array(
 	z.object({
 		id: z.string(),
-		typeId: z.nativeEnum(SectionType),
+		typeId: z.enum(SectionType),
 		title: z.string(),
 		description: z.optional(z.string()),
 		settings: z.object({
 			showAll: z.boolean(),
-			thingsOrder: z.nativeEnum(SectionThingsOrder),
+			thingsOrder: z.enum(SectionThingsOrder),
 		}),
 		thingsCount: z.number().int().min(0),
 	}),
@@ -41,7 +41,7 @@ export const thingsResponse = z.array(
 	z.object({
 		id: z.number(),
 		position: z.number(),
-		categoryId: z.nativeEnum(ThingCategory),
+		categoryId: z.enum(ThingCategory),
 		title: z.optional(z.string()),
 		firstLines: z.optional(z.array(z.string())),
 		startDate: z.optional(z.string()),
