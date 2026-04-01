@@ -47,13 +47,46 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 	}
 };
 
-export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<boolean> => {
+export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<{
+	id: string,
+	typeId: number,
+	title?: string,
+	description?: string,
+	settings: {
+		showAll: boolean,
+		thingsOrder: 1 | -1
+	},
+	thingsCount: number
+} | null> => {
 	const connection = await mysql.getConnection();
 
 	try {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionByIdQuery, [id]);
 
-		return rows.length > 0;
+		if (rows.length === 0) {
+			return null;
+		}
+
+		const { id: sectionId, typeId, title, description, settings, thingsCount } = rows[0];
+
+		let parsedSettings: SectionSettings = {};
+
+		try {
+			parsedSettings = settings ? JSON.parse(settings) : {};
+		} catch {
+			// ignore malformed settings
+		}
+
+		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+
+		return {
+			id: sectionId,
+			typeId,
+			title: title ?? undefined,
+			description: description ?? undefined,
+			settings: { showAll, thingsOrder },
+			thingsCount,
+		};
 	} finally {
 		connection.release();
 	}

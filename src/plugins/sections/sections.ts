@@ -30,9 +30,9 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 			},
 		},
 		handler: async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
-			const exists = await getSectionById(fastify.mysql, request.params.id);
+			const section = await getSectionById(fastify.mysql, request.params.id);
 
-			if (!exists) {
+			if (!section) {
 				return reply.code(404).send();
 			}
 
