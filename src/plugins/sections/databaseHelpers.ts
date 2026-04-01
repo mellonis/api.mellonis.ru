@@ -18,7 +18,13 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 		const [sections] = await connection.query<MySQLRowDataPacket[]>(sectionsQuery);
 
 		return sections.map(({ id, typeId, title, description, settings, thingsCount }) => {
-			const { show_all: showAll = false, things_order: thingsOrder = 1 } = settings ? JSON.parse(settings) : {};
+			let parsedSettings: { show_all?: boolean; things_order?: 1 | -1 } = {};
+			try {
+				parsedSettings = settings ? JSON.parse(settings) : {};
+			} catch {
+				// ignore malformed settings
+			}
+			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
 
 			return {
 				id,
@@ -78,7 +84,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			text,
 			seoDescription: seoDescription ?? undefined,
 			seoKeywords: seoKeywords ?? undefined,
-			info: info ? JSON.parse(info) : undefined,
+			info: info ? (() => { try { return JSON.parse(info); } catch { return undefined; } })() : undefined,
 		}));
 	} finally {
 		connection.release();
