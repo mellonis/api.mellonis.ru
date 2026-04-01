@@ -60,3 +60,7 @@ export const thingsResponse = z.array(
 		})),
 	}),
 );
+
+export type Section = z.infer<typeof sectionsResponse>[number];
+export type Thing = z.infer<typeof thingsResponse>[number];
+export type ThingsRequest = z.infer<typeof thingsRequest>;

@@ -1,19 +1,10 @@
 import { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
-import { sectionsQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
+import { sectionsQuery, sectionByIdQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
+import type { Section, Thing } from './schemas.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
-export const getSections = async (mysql: MySQLPromisePool): Promise<{
-	id: string,
-	typeId: number,
-	title?: string,
-	description?: string,
-	settings: {
-		showAll: boolean,
-		thingsOrder: 1 | -1
-	},
-	thingsCount: number
-}[]> => {
+export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
 	const connection = await mysql.getConnection();
 
 	try {
@@ -47,18 +38,42 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 	}
 };
 
-export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Promise<{
-	id: number,
-	position: number,
-	categoryId: number,
-	title?: string,
-	firstLines?: string,
-	startDate?: string,
-	finishDate?: string,
-	text: string,
-	seoDescription?: string,
-	seoKeywords?: string,
-}[]> => {
+export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<Section | null> => {
+	const connection = await mysql.getConnection();
+
+	try {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionByIdQuery, [id]);
+
+		if (rows.length === 0) {
+			return null;
+		}
+
+		const { id: sectionId, typeId, title, description, settings, thingsCount } = rows[0];
+
+		let parsedSettings: SectionSettings = {};
+
+		try {
+			parsedSettings = settings ? JSON.parse(settings) : {};
+		} catch {
+			// ignore malformed settings
+		}
+
+		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+
+		return {
+			id: sectionId,
+			typeId,
+			title: title ?? undefined,
+			description: description ?? undefined,
+			settings: { showAll, thingsOrder },
+			thingsCount,
+		};
+	} finally {
+		connection.release();
+	}
+};
+
+export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Promise<Thing[]> => {
 	const connection = await mysql.getConnection();
 
 	try {
