@@ -4,17 +4,20 @@ import type { Section, Thing } from './schemas.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
-const parseSettings = (settings: string | null): SectionSettings => {
-	if (!settings) {
-		return {};
+const parseJSON = (value: string | null): unknown => {
+	if (!value) {
+		return undefined;
 	}
 
 	try {
-		return JSON.parse(settings);
+		return JSON.parse(value);
 	} catch {
-		return {};
+		return undefined;
 	}
 };
+
+const parseSettings = (settings: string | null): SectionSettings =>
+	(parseJSON(settings) as SectionSettings) ?? {};
 
 export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
 	const connection = await mysql.getConnection();
@@ -98,17 +101,7 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			text,
 			seoDescription: seoDescription ?? undefined,
 			seoKeywords: seoKeywords ?? undefined,
-			info: (() => {
-				if (!info) {
-					return undefined;
-				}
-
-				try {
-					return JSON.parse(info);
-				} catch {
-					return undefined;
-				}
-			})(),
+			info: parseJSON(info) as Thing['info'],
 		}));
 	} finally {
 		connection.release();
