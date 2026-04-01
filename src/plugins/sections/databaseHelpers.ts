@@ -23,7 +23,7 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 			return {
 				id,
 				typeId,
-				title: title,
+				title,
 				description: description ?? undefined,
 				settings: {
 					showAll,
