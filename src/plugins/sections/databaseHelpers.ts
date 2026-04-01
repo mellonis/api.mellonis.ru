@@ -1,6 +1,8 @@
 import { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
 import { sectionsQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
 
+type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
+
 export const getSections = async (mysql: MySQLPromisePool): Promise<{
 	id: string,
 	typeId: number,
@@ -18,7 +20,15 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 		const [sections] = await connection.query<MySQLRowDataPacket[]>(sectionsQuery);
 
 		return sections.map(({ id, typeId, title, description, settings, thingsCount }) => {
-			const { show_all: showAll = false, things_order: thingsOrder = 1 } = settings ? JSON.parse(settings) : {};
+			let parsedSettings: SectionSettings = {};
+
+			try {
+				parsedSettings = settings ? JSON.parse(settings) : {};
+			} catch {
+				// ignore malformed settings
+			}
+
+			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
 
 			return {
 				id,
@@ -78,7 +88,17 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			text,
 			seoDescription: seoDescription ?? undefined,
 			seoKeywords: seoKeywords ?? undefined,
-			info: info ? JSON.parse(info) : undefined,
+			info: (() => {
+				if (!info) {
+					return undefined;
+				}
+
+				try {
+					return JSON.parse(info);
+				} catch {
+					return undefined;
+				}
+			})(),
 		}));
 	} finally {
 		connection.release();
