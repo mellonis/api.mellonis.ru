@@ -1,5 +1,5 @@
 import { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
-import { sectionsQuery, sectionThingsQuery, thinNotesQuery } from './queries.js';
+import { sectionsQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
 
 export const getSections = async (mysql: MySQLPromisePool): Promise<{
 	id: string,
@@ -23,7 +23,7 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 			return {
 				id,
 				typeId,
-				title: title,
+				title,
 				description: description ?? undefined,
 				settings: {
 					showAll,
@@ -89,7 +89,7 @@ export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Pr
 	const connection = await mysql.getConnection();
 
 	try {
-		const [notes] = await connection.query<MySQLRowDataPacket[]>(thinNotesQuery, [ids]);
+		const [notes] = await connection.query<MySQLRowDataPacket[]>(thingNotesQuery, [ids]);
 
 		if (notes.length > 0) {
 			return notes.reduce((result, { text, thingId }) => {
