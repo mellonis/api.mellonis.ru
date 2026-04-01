@@ -9,6 +9,7 @@
 	],
 	"compilerOptions": {
 		"strict": true,
+		"rootDir": "./src",
 		"outDir": "./build"
 	}
 }
