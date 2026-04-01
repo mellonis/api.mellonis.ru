@@ -22,7 +22,7 @@ fastify.register(sectionsPlugin, { prefix: '/sections' });
 async function main() {
 	await fastify.listen({
 		host: '0.0.0.0',
-		port: 3000,
+		port: process.env.PORT ? parseInt(process.env.PORT, 10) : 3000,
 	});
 }
 
