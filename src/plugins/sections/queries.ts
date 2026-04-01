@@ -9,6 +9,18 @@ export const sectionsQuery = `
 	WHERE section_type_id > 0;
 `;
 
+export const sectionByIdQuery = `
+	SELECT section_identifier   AS id,
+				 section_type_id      AS typeId,
+				 section_title        AS title,
+				 section_description  AS description,
+				 settings,
+				 section_things_count AS thingsCount
+	FROM v_sections_info
+	WHERE section_type_id > 0
+	  AND section_identifier = ?;
+`;
+
 export const sectionThingsQuery = `
 	SELECT thing_id AS id,
 				 thing_position_in_section AS position,

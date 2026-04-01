@@ -1,5 +1,5 @@
 import { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
-import { sectionsQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
+import { sectionsQuery, sectionByIdQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
@@ -42,6 +42,18 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 				thingsCount,
 			};
 		});
+	} finally {
+		connection.release();
+	}
+};
+
+export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<boolean> => {
+	const connection = await mysql.getConnection();
+
+	try {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionByIdQuery, [id]);
+
+		return rows.length > 0;
 	} finally {
 		connection.release();
 	}
