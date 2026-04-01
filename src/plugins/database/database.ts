@@ -10,6 +10,10 @@ declare module 'fastify' {
 const databasePlugin = fastifyPlugin(async (fastify) => {
 	fastify.log.info('[PLUGIN] Registering: database...');
 
+	if (!process.env.CONNECTION_STRING) {
+		throw new Error('CONNECTION_STRING environment variable is not set');
+	}
+
 	await fastify.register(fastifyMySQL, {
 		promise: true,
 		connectionString: process.env.CONNECTION_STRING,

@@ -4,22 +4,37 @@ import type { Section, Thing } from './schemas.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
-export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
+const withConnection = async <T>(mysql: MySQLPromisePool, fn: (connection: Awaited<ReturnType<MySQLPromisePool['getConnection']>>) => Promise<T>): Promise<T> => {
 	const connection = await mysql.getConnection();
 
 	try {
+		return await fn(connection);
+	} finally {
+		connection.release();
+	}
+};
+
+const parseJSON = (value: string | null): unknown => {
+	if (!value) {
+		return undefined;
+	}
+
+	try {
+		return JSON.parse(value);
+	} catch {
+		return undefined;
+	}
+};
+
+const parseSettings = (settings: string | null): SectionSettings =>
+	(parseJSON(settings) as SectionSettings) ?? {};
+
+export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> =>
+	withConnection(mysql, async (connection) => {
 		const [sections] = await connection.query<MySQLRowDataPacket[]>(sectionsQuery);
 
 		return sections.map(({ id, typeId, title, description, settings, thingsCount }) => {
-			let parsedSettings: SectionSettings = {};
-
-			try {
-				parsedSettings = settings ? JSON.parse(settings) : {};
-			} catch {
-				// ignore malformed settings
-			}
-
-			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parseSettings(settings);
 
 			return {
 				id,
@@ -33,15 +48,10 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> =
 				thingsCount,
 			};
 		});
-	} finally {
-		connection.release();
-	}
-};
+	});
 
-export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<Section | null> => {
-	const connection = await mysql.getConnection();
-
-	try {
+export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<Section | null> =>
+	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionByIdQuery, [id]);
 
 		if (rows.length === 0) {
@@ -49,16 +59,7 @@ export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promi
 		}
 
 		const { id: sectionId, typeId, title, description, settings, thingsCount } = rows[0];
-
-		let parsedSettings: SectionSettings = {};
-
-		try {
-			parsedSettings = settings ? JSON.parse(settings) : {};
-		} catch {
-			// ignore malformed settings
-		}
-
-		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parseSettings(settings);
 
 		return {
 			id: sectionId,
@@ -68,15 +69,10 @@ export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promi
 			settings: { showAll, thingsOrder },
 			thingsCount,
 		};
-	} finally {
-		connection.release();
-	}
-};
+	});
 
-export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Promise<Thing[]> => {
-	const connection = await mysql.getConnection();
-
-	try {
+export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Promise<Thing[]> =>
+	withConnection(mysql, async (connection) => {
 		const [things] = await connection.query<MySQLRowDataPacket[]>(sectionThingsQuery, [id]);
 
 		return things.map((
@@ -103,27 +99,12 @@ export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Pro
 			text,
 			seoDescription: seoDescription ?? undefined,
 			seoKeywords: seoKeywords ?? undefined,
-			info: (() => {
-				if (!info) {
-					return undefined;
-				}
-
-				try {
-					return JSON.parse(info);
-				} catch {
-					return undefined;
-				}
-			})(),
+			info: parseJSON(info) as Thing['info'],
 		}));
-	} finally {
-		connection.release();
-	}
-};
+	});
 
-export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Promise<Map<number, string[]>> => {
-	const connection = await mysql.getConnection();
-
-	try {
+export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Promise<Map<number, string[]>> =>
+	withConnection(mysql, async (connection) => {
 		const [notes] = await connection.query<MySQLRowDataPacket[]>(thingNotesQuery, [ids]);
 
 		if (notes.length > 0) {
@@ -135,11 +116,8 @@ export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Pr
 				result.get(thingId)!.push(text);
 
 				return result;
-			}, new Map() as Awaited<ReturnType<typeof getThingsNotes>>);
+			}, new Map<number, string[]>());
 		}
 
 		return new Map();
-	} finally {
-		connection.release();
-	}
-};
+	});
