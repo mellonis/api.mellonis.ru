@@ -4,6 +4,18 @@ import type { Section, Thing } from './schemas.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
+const parseSettings = (settings: string | null): SectionSettings => {
+	if (!settings) {
+		return {};
+	}
+
+	try {
+		return JSON.parse(settings);
+	} catch {
+		return {};
+	}
+};
+
 export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
 	const connection = await mysql.getConnection();
 
@@ -11,15 +23,7 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> =
 		const [sections] = await connection.query<MySQLRowDataPacket[]>(sectionsQuery);
 
 		return sections.map(({ id, typeId, title, description, settings, thingsCount }) => {
-			let parsedSettings: SectionSettings = {};
-
-			try {
-				parsedSettings = settings ? JSON.parse(settings) : {};
-			} catch {
-				// ignore malformed settings
-			}
-
-			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+			const { show_all: showAll = false, things_order: thingsOrder = 1 } = parseSettings(settings);
 
 			return {
 				id,
@@ -49,16 +53,7 @@ export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promi
 		}
 
 		const { id: sectionId, typeId, title, description, settings, thingsCount } = rows[0];
-
-		let parsedSettings: SectionSettings = {};
-
-		try {
-			parsedSettings = settings ? JSON.parse(settings) : {};
-		} catch {
-			// ignore malformed settings
-		}
-
-		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parsedSettings;
+		const { show_all: showAll = false, things_order: thingsOrder = 1 } = parseSettings(settings);
 
 		return {
 			id: sectionId,
