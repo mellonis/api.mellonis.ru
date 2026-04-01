@@ -26,6 +26,6 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build
 
-EXPOSE ${PORT:-3000}
+EXPOSE 3000
 
 CMD ["node", "build/index.js"]
