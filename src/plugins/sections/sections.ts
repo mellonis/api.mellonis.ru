@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { getSections, getSectionById, getSectionThings, getThingsNotes } from './databaseHelpers.js';
-import { sectionsResponse, thingsRequest, thingsResponse } from './schemas.js';
+import { sectionsResponse, thingsRequest, thingsResponse, ThingsRequest } from './schemas.js';
 
 
 export async function sectionsPlugin(fastify: FastifyInstance) {
@@ -29,7 +29,7 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 				404: z.void(),
 			},
 		},
-		handler: async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+		handler: async (request: FastifyRequest<{ Params: ThingsRequest }>, reply) => {
 			const section = await getSectionById(fastify.mysql, request.params.id);
 
 			if (!section) {

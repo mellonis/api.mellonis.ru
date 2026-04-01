@@ -33,8 +33,6 @@ export const sectionsResponse = z.array(
 	}),
 );
 
-export type Section = z.infer<typeof sectionsResponse>[number];
-
 export const thingsRequest = z.object({
 	id: z.string(),
 });
@@ -62,3 +60,7 @@ export const thingsResponse = z.array(
 		})),
 	}),
 );
+
+export type Section = z.infer<typeof sectionsResponse>[number];
+export type Thing = z.infer<typeof thingsResponse>[number];
+export type ThingsRequest = z.infer<typeof thingsRequest>;
