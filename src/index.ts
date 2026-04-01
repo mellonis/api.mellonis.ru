@@ -5,11 +5,9 @@ import { databasePlugin } from './plugins/database/database.js';
 import { swaggerPlugin } from './plugins/swagger/swagger.js';
 
 const fastify: FastifyInstance = Fastify({
-	logger: {
-		transport: {
-			target: 'pino-pretty',
-		},
-	},
+	logger: process.env.NODE_ENV === 'production'
+		? true
+		: { transport: { target: 'pino-pretty' } },
 });
 
 fastify.setValidatorCompiler(validatorCompiler);
