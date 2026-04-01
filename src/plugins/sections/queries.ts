@@ -27,7 +27,7 @@ export const sectionThingsQuery = `
 		section_identifier = ?;
 `;
 
-export const thinNotesQuery = `
+export const thingNotesQuery = `
 	SELECT id,
 				 text,
 				 r_thing_id AS thingId
