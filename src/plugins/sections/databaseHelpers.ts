@@ -3,7 +3,7 @@ import { sectionsQuery, sectionByIdQuery, sectionThingsQuery, thingNotesQuery } 
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
 
-export const getSections = async (mysql: MySQLPromisePool): Promise<{
+type Section = {
 	id: string,
 	typeId: number,
 	title?: string,
@@ -13,7 +13,9 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 		thingsOrder: 1 | -1
 	},
 	thingsCount: number
-}[]> => {
+};
+
+export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
 	const connection = await mysql.getConnection();
 
 	try {
@@ -47,17 +49,7 @@ export const getSections = async (mysql: MySQLPromisePool): Promise<{
 	}
 };
 
-export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<{
-	id: string,
-	typeId: number,
-	title?: string,
-	description?: string,
-	settings: {
-		showAll: boolean,
-		thingsOrder: 1 | -1
-	},
-	thingsCount: number
-} | null> => {
+export const getSectionById = async (mysql: MySQLPromisePool, id: string): Promise<Section | null> => {
 	const connection = await mysql.getConnection();
 
 	try {
