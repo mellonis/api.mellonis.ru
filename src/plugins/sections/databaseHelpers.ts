@@ -1,19 +1,8 @@
 import { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
 import { sectionsQuery, sectionByIdQuery, sectionThingsQuery, thingNotesQuery } from './queries.js';
+import type { Section } from './schemas.js';
 
 type SectionSettings = { show_all?: boolean; things_order?: 1 | -1 };
-
-type Section = {
-	id: string,
-	typeId: number,
-	title?: string,
-	description?: string,
-	settings: {
-		showAll: boolean,
-		thingsOrder: 1 | -1
-	},
-	thingsCount: number
-};
 
 export const getSections = async (mysql: MySQLPromisePool): Promise<Section[]> => {
 	const connection = await mysql.getConnection();
