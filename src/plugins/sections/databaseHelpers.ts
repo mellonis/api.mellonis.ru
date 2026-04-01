@@ -116,7 +116,7 @@ export const getThingsNotes = async (mysql: MySQLPromisePool, ids: number[]): Pr
 				result.get(thingId)!.push(text);
 
 				return result;
-			}, new Map() as Awaited<ReturnType<typeof getThingsNotes>>);
+			}, new Map<number, string[]>());
 		}
 
 		return new Map();
