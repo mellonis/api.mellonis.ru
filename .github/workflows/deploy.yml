@@ -20,7 +20,7 @@ jobs:
       - name: Build image
         run: docker build . -t api.mellonis.ru
       - name: Save image
-        run: docker save -o api.mellonis.ru.tar api.mellonis.ru
+        run: docker save api.mellonis.ru | gzip > api.mellonis.ru.tar.gz
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.10.0
         with:
@@ -30,7 +30,7 @@ jobs:
           SSH_HOST: ${{secrets.SSH_HOST}}
           SSH_USER: ${{secrets.SSH_USER}}
           SSH_TARGET: ${{secrets.SSH_TARGET}}
-        run: scp -o StrictHostKeyChecking=no ./api.mellonis.ru.tar $SSH_USER@$SSH_HOST:$SSH_TARGET
+        run: scp -o StrictHostKeyChecking=no ./api.mellonis.ru.tar.gz $SSH_USER@$SSH_HOST:$SSH_TARGET
       - name: Run container
         env:
           SSH_HOST: ${{secrets.SSH_HOST}}
