@@ -1,0 +1,28 @@
+import { thingFields } from '../../lib/queries.js';
+
+const extendedThingFields = `
+	${thingFields},
+	section_identifier        AS sectionId,
+	thing_position_in_section AS position
+`;
+
+export const thingsForDateQuery = `
+	SELECT ${extendedThingFields}
+	FROM v_things_info
+	WHERE SUBSTRING(thing_finish_date, 6) = DATE_FORMAT(CURDATE(), '%m-%d')
+		 OR (SUBSTRING(thing_finish_date, 6, 2) = DATE_FORMAT(CURDATE(), '%m') AND SUBSTRING(thing_finish_date, 9) = '00'
+		     AND CURDATE() = LAST_DAY(CURDATE()))
+	-- OR SUBSTRING(thing_finish_date, 6) = '00-00' (YYYY-00-00 means date unknown — excluded until a dedicated flag exists in v_things_info)
+	ORDER BY thing_finish_date DESC;
+`;
+
+export const thingsOfTheDayFallbackQuery = `
+	SELECT ${extendedThingFields}
+	FROM v_things_info
+	JOIN (
+		SELECT id
+		FROM thing
+		ORDER BY RAND(TO_DAYS(CURDATE()))
+		LIMIT 1
+	) AS chosen ON v_things_info.thing_id = chosen.id;
+`;

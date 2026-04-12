@@ -1,8 +1,10 @@
-import Fastify, { FastifyInstance } from 'fastify';
+import type { FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { sectionsPlugin } from './plugins/sections/sections.js';
 import { databasePlugin } from './plugins/database/database.js';
 import { swaggerPlugin } from './plugins/swagger/swagger.js';
+import { thingsOfTheDayPlugin } from './plugins/thingsOfTheDay/thingsOfTheDay.js';
 
 const fastify: FastifyInstance = Fastify({
 	logger: process.env.NODE_ENV === 'production'
@@ -16,6 +18,7 @@ fastify.setSerializerCompiler(serializerCompiler);
 fastify.register(databasePlugin);
 fastify.register(swaggerPlugin);
 fastify.register(sectionsPlugin, { prefix: '/sections' });
+fastify.register(thingsOfTheDayPlugin, { prefix: '/things-of-the-day' });
 
 async function main() {
 	await fastify.listen({

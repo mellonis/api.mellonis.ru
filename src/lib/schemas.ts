@@ -1,0 +1,31 @@
+import { z } from 'zod';
+
+export enum ThingCategory {
+	Poetry = 1,
+	Prose,
+	Tlya,
+	Thought
+}
+
+export const errorResponse = z.object({ error: z.string() });
+
+export const thingSchema = z.object({
+	id: z.number(),
+	categoryId: z.enum(ThingCategory),
+	title: z.optional(z.string()),
+	firstLines: z.optional(z.array(z.string())),
+	startDate: z.optional(z.string()),
+	finishDate: z.string(),
+	text: z.string(),
+	notes: z.optional(z.array(z.string())),
+	seoDescription: z.optional(z.string()),
+	seoKeywords: z.optional(z.string()),
+	info: z.optional(z.object({
+		attachments: z.optional(z.object({
+			audio: z.optional(z.array(z.object({
+				preload: z.optional(z.enum(['none'])),
+				sources: z.array(z.object({ src: z.string(), type: z.enum(['audio/mpeg']) })),
+			}))),
+		})),
+	})),
+});
