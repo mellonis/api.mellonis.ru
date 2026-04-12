@@ -16,6 +16,7 @@ export const thingSchema = z.object({
 	firstLines: z.optional(z.array(z.string())),
 	startDate: z.optional(z.string()),
 	finishDate: z.string(),
+	lastModified: z.optional(z.date()),
 	text: z.string(),
 	notes: z.optional(z.array(z.string())),
 	seoDescription: z.optional(z.string()),

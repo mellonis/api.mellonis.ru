@@ -5,6 +5,7 @@ export const thingFields = `
 	thing_first_lines               AS firstLines,
 	cast(thing_start_date AS char)  AS startDate,
 	cast(thing_finish_date AS char) AS finishDate,
+	thing_last_modified             AS lastModified,
 	thing_text                      AS text,
 	thing_seo_description           AS seoDescription,
 	thing_seo_keywords              AS seoKeywords,

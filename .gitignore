@@ -2,3 +2,5 @@ node_modules
 build
 .env
 .claude
+
+api.mellonis.ru.tar.gz

@@ -23,6 +23,7 @@ export const mapThingBaseRow = (row: MySQLRowDataPacket) => ({
 	firstLines: (row.firstLines ?? undefined) ? (row.firstLines as string).replaceAll('\r', '').split('\n') : undefined,
 	startDate: row.startDate ?? undefined as string | undefined,
 	finishDate: row.finishDate ?? undefined as string | undefined,
+	lastModified: row.lastModified ?? undefined as string | undefined,
 	text: row.text as string,
 	seoDescription: row.seoDescription ?? undefined as string | undefined,
 	seoKeywords: row.seoKeywords ?? undefined as string | undefined,
