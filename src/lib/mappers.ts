@@ -1,0 +1,31 @@
+import type { MySQLRowDataPacket } from '@fastify/mysql';
+import type { z } from 'zod';
+import type { thingSchema } from './schemas.js';
+
+type ThingBase = z.infer<typeof thingSchema>;
+
+export const parseJSON = (value: string | null): unknown => {
+	if (!value) {
+		return undefined;
+	}
+
+	try {
+		return JSON.parse(value);
+	} catch {
+		return undefined;
+	}
+};
+
+export const mapThingBaseRow = (row: MySQLRowDataPacket) => ({
+	id: row.id as number,
+	categoryId: row.categoryId,
+	title: row.title ?? undefined as string | undefined,
+	firstLines: (row.firstLines ?? undefined) ? (row.firstLines as string).replaceAll('\r', '').split('\n') : undefined,
+	startDate: row.startDate ?? undefined as string | undefined,
+	finishDate: row.finishDate ?? undefined as string | undefined,
+	text: row.text as string,
+	seoDescription: row.seoDescription ?? undefined as string | undefined,
+	seoKeywords: row.seoKeywords ?? undefined as string | undefined,
+	info: parseJSON(row.info) as ThingBase['info'],
+	notes: parseJSON(row.notes) as ThingBase['notes'],
+});

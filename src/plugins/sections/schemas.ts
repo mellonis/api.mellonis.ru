@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { thingSchema } from '../../lib/schemas.js';
 
 enum SectionType {
 	Common = 1,
@@ -10,13 +11,6 @@ enum SectionThingsOrder {
 	Asc = 1,
 	Original = 0,
 	Desc = -1,
-}
-
-enum ThingCategory {
-	Poetry = 1,
-	Prose,
-	Tlya,
-	Thought
 }
 
 export const sectionsResponse = z.array(
@@ -38,26 +32,8 @@ export const thingsRequest = z.object({
 });
 
 export const thingsResponse = z.array(
-	z.object({
-		id: z.number(),
+	thingSchema.extend({
 		position: z.number(),
-		categoryId: z.enum(ThingCategory),
-		title: z.optional(z.string()),
-		firstLines: z.optional(z.array(z.string())),
-		startDate: z.optional(z.string()),
-		finishDate: z.string(),
-		text: z.string(),
-		notes: z.optional(z.array(z.string())),
-		seoDescription: z.optional(z.string()),
-		seoKeywords: z.optional(z.string()),
-		info: z.optional(z.object({
-			attachments: z.optional(z.object({
-				audio: z.optional(z.array(z.object({
-					preload: z.optional(z.enum(['none'])),
-					sources: z.array(z.object({ src: z.string(), type: z.enum(['audio/mpeg']) })),
-				}))),
-			})),
-		})),
 	}),
 );
 

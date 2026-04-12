@@ -1,4 +1,4 @@
-import fastifyMySQL, { MySQLPromisePool } from '@fastify/mysql';
+import fastifyMySQL, { type MySQLPromisePool } from '@fastify/mysql';
 import fastifyPlugin from 'fastify-plugin';
 
 declare module 'fastify' {

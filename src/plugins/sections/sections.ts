@@ -1,8 +1,8 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { getSections, getSectionById, getSectionThings, getThingsNotes } from './databaseHelpers.js';
-import { sectionsResponse, thingsRequest, thingsResponse, ThingsRequest } from './schemas.js';
-
+import { getSections, getSectionById, getSectionThings } from './databaseHelpers.js';
+import { sectionsResponse, thingsRequest, thingsResponse, type ThingsRequest } from './schemas.js';
+import { errorResponse } from '../../lib/schemas.js';
 
 export async function sectionsPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: sections...');
@@ -11,13 +11,16 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 		schema: {
 			response: {
 				200: sectionsResponse,
+				500: errorResponse,
 			},
 		},
 		handler: async (_request, reply) => {
-			return getSections(fastify.mysql)
-				.catch((error) => {
-					reply.send(error);
-				});
+			try {
+				return await getSections(fastify.mysql);
+			} catch (error) {
+				fastify.log.error(error);
+				reply.status(500).send({ error: 'Internal server error' });
+			}
 		},
 	});
 
@@ -27,33 +30,22 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 			response: {
 				200: thingsResponse,
 				404: z.void(),
+				500: errorResponse,
 			},
 		},
 		handler: async (request: FastifyRequest<{ Params: ThingsRequest }>, reply) => {
-			const section = await getSectionById(fastify.mysql, request.params.id);
+			try {
+				const section = await getSectionById(fastify.mysql, request.params.id);
 
-			if (!section) {
-				return reply.code(404).send();
+				if (!section) {
+					return reply.code(404).send();
+				}
+
+				return await getSectionThings(fastify.mysql, request.params.id);
+			} catch (error) {
+				fastify.log.error(error);
+				reply.status(500).send({ error: 'Internal server error' });
 			}
-
-			const things = await getSectionThings(fastify.mysql, request.params.id);
-
-			const ids = things.map(({ id }) => id);
-
-			if (!ids.length) {
-				return things;
-			}
-
-			const thingIdToNotesMap = await getThingsNotes(fastify.mysql, ids);
-
-			if (thingIdToNotesMap.size === 0) {
-				return things;
-			}
-
-			return things.map((thing) => ({
-				...thing,
-				notes: thingIdToNotesMap.get(thing.id),
-			}));
 		},
 	});
 
