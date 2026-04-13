@@ -7,6 +7,7 @@ export const withConnection = async <T>(
 	const connection = await mysql.getConnection();
 
 	try {
+		await connection.query("SET time_zone = '+03:00'");
 		return await fn(connection);
 	} finally {
 		connection.release();
