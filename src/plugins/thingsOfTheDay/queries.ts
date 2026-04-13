@@ -9,9 +9,11 @@ const extendedThingFields = `
 export const thingsForDateQuery = `
 	SELECT ${extendedThingFields}
 	FROM v_things_info
-	WHERE SUBSTRING(thing_finish_date, 6) = DATE_FORMAT(CURDATE(), '%m-%d')
-		 OR (SUBSTRING(thing_finish_date, 6, 2) = DATE_FORMAT(CURDATE(), '%m') AND SUBSTRING(thing_finish_date, 9) = '00'
-		     AND CURDATE() = LAST_DAY(CURDATE()))
+	JOIN thing ON thing.id = v_things_info.thing_id
+	WHERE thing.exclude_from_daily = FALSE
+		AND (SUBSTRING(thing_finish_date, 6) = DATE_FORMAT(CURDATE(), '%m-%d')
+		     OR (SUBSTRING(thing_finish_date, 6, 2) = DATE_FORMAT(CURDATE(), '%m') AND SUBSTRING(thing_finish_date, 9) = '00'
+		         AND CURDATE() = LAST_DAY(CURDATE())))
 	-- OR SUBSTRING(thing_finish_date, 6) = '00-00' (YYYY-00-00 means date unknown — excluded until a dedicated flag exists in v_things_info)
 	ORDER BY thing_finish_date DESC;
 `;
@@ -22,6 +24,7 @@ export const thingsOfTheDayFallbackQuery = `
 	JOIN (
 		SELECT id
 		FROM thing
+		WHERE exclude_from_daily = FALSE
 		ORDER BY RAND(TO_DAYS(CURDATE()))
 		LIMIT 1
 	) AS chosen ON v_things_info.thing_id = chosen.id;
