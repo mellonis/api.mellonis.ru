@@ -8,6 +8,7 @@ function createMockMysql(dateResults: Record<string, unknown>[], fallbackResults
 	return {
 		getConnection: vi.fn().mockResolvedValue({
 			query: vi.fn()
+				.mockResolvedValueOnce([]) // SET time_zone
 				.mockResolvedValueOnce([dateResults])
 				.mockResolvedValueOnce([fallbackResults]),
 			release: vi.fn(),
