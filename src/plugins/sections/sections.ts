@@ -9,16 +9,18 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 
 	fastify.get('/', {
 		schema: {
+			description: 'List all sections.',
+			tags: ['Sections'],
 			response: {
 				200: sectionsResponse,
 				500: errorResponse,
 			},
 		},
-		handler: async (_request, reply) => {
+		handler: async (request, reply) => {
 			try {
 				return await getSections(fastify.mysql);
 			} catch (error) {
-				fastify.log.error(error);
+				request.log.error(error);
 				reply.status(500).send({ error: 'Internal server error' });
 			}
 		},
@@ -26,6 +28,8 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 
 	fastify.get('/:id', {
 		schema: {
+			description: 'Get things (poems/prose) in a section by section ID.',
+			tags: ['Sections'],
 			params: thingsRequest,
 			response: {
 				200: thingsResponse,
@@ -43,7 +47,7 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 
 				return await getSectionThings(fastify.mysql, request.params.id);
 			} catch (error) {
-				fastify.log.error(error);
+				request.log.error(error);
 				reply.status(500).send({ error: 'Internal server error' });
 			}
 		},

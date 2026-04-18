@@ -19,6 +19,10 @@ npm run lint
 
 # Run production build
 node build/index.js
+
+# Smoke tests (require running server + DB)
+./smoke-test-v1.sh [base_url]   # public endpoints only
+./smoke-test.sh [base_url]      # full auth flow (creates/deletes a test user)
 ```
 
 ## Environment
@@ -26,22 +30,36 @@ node build/index.js
 Requires a `.env` file with:
 ```
 CONNECTION_STRING=mysql://user:password@host:port/schema
+JWT_SECRET=<min-32-characters>
+JWT_ACCESS_TOKEN_TTL=900            # required, seconds (15min recommended)
+JWT_REFRESH_TOKEN_TTL=2592000       # required, seconds (30 days recommended)
+ACTIVATION_KEY_TTL=86400         # required, seconds (see ../CLAUDE.md → Verification Key TTLs)
+RESET_KEY_TTL=3600               # required, seconds (see ../CLAUDE.md → Verification Key TTLs)
+SMTP_HOST=smtp.protonmail.ch
+SMTP_PORT=587
+SMTP_USER=notifier@mellonis.ru
+SMTP_PASS=<password>
+SMTP_FROM="Система оповещений <notifier@mellonis.ru>"  # required (no fallback to SMTP_USER — would leak credentials)
+ALLOWED_ORIGINS=https://poetry.mellonis.ru,https://poetry-old2.mellonis.ru  # required, comma-separated whitelist of client origins for email links
 ```
 
-The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). The `CONNECTION_STRING` variable is validated on startup and will exit if missing.
+See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). `CONNECTION_STRING`, `JWT_SECRET`, and `ALLOWED_ORIGINS` are validated on startup. SMTP vars are required only in production (`NODE_ENV=production`); in dev mode, notifications are logged to the console instead.
 
 ## Architecture
 
 Fastify app using a plugin-based structure under `src/plugins/`:
 
 - **`database/`** — registers the MySQL connection pool on the Fastify instance via `@fastify/mysql`
+- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`
+- **`authNotifier/`** — `fastify-plugin` that decorates `fastify.authNotifier` with an `AuthNotifier` implementation. In production (`NODE_ENV=production`): `EmailAuthNotifier` sends via SMTP. Otherwise: `ConsoleAuthNotifier` logs keys to pino (for local dev/testing without SMTP).
 - **`swagger/`** — mounts OpenAPI docs at `/docs` via `@fastify/swagger` + `@fastify/swagger-ui`
 - **`sections/`** — routes prefixed `/sections`
 - **`thingsOfTheDay/`** — routes prefixed `/things-of-the-day`
+- **`users/`** — routes prefixed `/users` (change password, delete account)
 
 Each route plugin is split into: `*.ts` (handler), `schemas.ts`, `queries.ts`, `databaseHelpers.ts`.
 
-Shared utilities live in `src/lib/`: `schemas.ts` (Zod schemas), `queries.ts` (SQL fragments), `mappers.ts` (row mappers), `databaseHelpers.ts` (`withConnection`). Plugin schemas extend or re-export from `src/lib/schemas.ts`.
+Shared utilities live in `src/lib/`: `schemas.ts` (Zod schemas), `queries.ts` (SQL fragments), `mappers.ts` (row mappers), `databaseHelpers.ts` (`withConnection`), `email.ts` (SMTP transport), `emailTemplates.ts` (HTML renderers), `maskEmail.ts` (masks emails for logging). Domain-specific notifier implementations live in their own subdirectory — e.g., `lib/authNotifier/` contains `AuthNotifier.ts` (interface), `EmailAuthNotifier.ts`, `ConsoleAuthNotifier.ts`. Plugin schemas extend or re-export from `src/lib/schemas.ts`. Route handlers use `fastify.authNotifier` for auth-related notifications — never call `sendEmail` directly.
 
 Validation and serialization use `fastify-type-provider-zod`. All Fastify route schemas reference Zod objects.
 
@@ -51,11 +69,11 @@ Validation and serialization use `fastify-type-provider-zod`. All Fastify route 
 
 **Type-only imports** use `import type` (or inline `type` for mixed imports).
 
-**Notes aggregation** uses a correlated subquery with `GROUP_CONCAT(JSON_QUOTE(text) ORDER BY id SEPARATOR ',')` wrapped in `CONCAT('[', ..., ']')` — not `JSON_ARRAYAGG(...ORDER BY...)`, which requires MySQL 8.0.14+.
+**Notes aggregation** uses a correlated subquery with `GROUP_CONCAT(JSON_QUOTE(text) ORDER BY id SEPARATOR ',')` wrapped in `CONCAT('[', ..., ']')` (legacy pattern — `JSON_ARRAYAGG` is available on the current MySQL 8.4.8 if refactored).
 
 **`things-of-the-day` selection** — primary query matches by `MM-DD` ignoring year via `SUBSTRING(thing_finish_date, 6)`, also handles partial dates (`YYYY-MM-00`, `YYYY-00-00`), ordered newest year first. Fallback uses `RAND(TO_DAYS(CURDATE()))` seeded by date for stable daily randomness. Results are grouped by `thing_id` in the app to collect `sections: [{id, position}]`.
 
-**`withConnection(mysql, fn)`** in `src/lib/databaseHelpers.ts` — shared helper for all DB access; handles pool acquire/release via try/finally.
+**`withConnection(mysql, fn)`** in `src/lib/databaseHelpers.ts` — shared helper for all DB access; handles pool acquire/release via try/finally. MySQL server timezone is set to `+03:00` (Moscow) via `default-time-zone` in `mysql.cnf` — all `NOW()`, `CURDATE()`, and timestamp comparisons run in Moscow time. Verification key TTL checks use `Date.now()` (Node.js clock, UTC epoch) against the key's embedded timestamp (also `Date.now()` at generation) — self-consistent regardless of server timezone. These two clocks (DB server vs Node.js) don't cross.
 
 **Logging** uses `pino-pretty` only when `NODE_ENV !== 'production'`; raw Pino otherwise.
 
