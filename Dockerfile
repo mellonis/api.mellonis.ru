@@ -22,6 +22,7 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV TZ=Europe/Moscow
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build

@@ -1,0 +1,18 @@
+import { z } from 'zod';
+
+export const userIdParam = z.object({
+	id: z.coerce.number().int().positive(),
+});
+
+export const changePasswordRequest = z.object({
+	currentPassword: z.string().min(1),
+	newPassword: z.string().min(6),
+});
+
+export const deleteUserRequest = z.object({
+	password: z.string().min(1),
+});
+
+export type UserIdParam = z.infer<typeof userIdParam>;
+export type ChangePasswordRequest = z.infer<typeof changePasswordRequest>;
+export type DeleteUserRequest = z.infer<typeof deleteUserRequest>;

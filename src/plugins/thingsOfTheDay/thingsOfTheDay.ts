@@ -8,15 +8,17 @@ export async function thingsOfTheDayPlugin(fastify: FastifyInstance) {
 
 	fastify.get('/', {
 		schema: {
+			description: 'Get things matching today\'s date, or a random daily selection as fallback.',
+			tags: ['Things of the Day'],
 			response: {
 				200: thingsOfTheDayResponse,
 				500: errorResponse,
 			},
-		}, handler: async (_request, reply) => {
+		}, handler: async (request, reply) => {
 			try {
 				return await getThingsOfTheDay(fastify.mysql);
 			} catch (error) {
-				fastify.log.error(error);
+				request.log.error(error);
 				reply.status(500).send({ error: 'Internal server error' });
 			}
 		},

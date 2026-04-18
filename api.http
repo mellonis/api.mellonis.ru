@@ -1,0 +1,119 @@
+@host = http://localhost:3000
+
+### ---- Sections ----
+
+### Get all sections
+GET {{host}}/sections
+
+### Get things in a section
+GET {{host}}/sections/poetry
+
+### ---- Things of the Day ----
+
+### Get things of the day
+GET {{host}}/things-of-the-day
+
+### ---- Auth: Register ----
+
+### Register a new user
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{
+  "login": "testuser",
+  "password": "password123",
+  "email": "test@example.com"
+}
+
+### ---- Auth: Activate ----
+
+### Activate account (paste key from registration email)
+POST {{host}}/auth/activate
+Content-Type: application/json
+
+{
+  "key": "<activation-key>"
+}
+
+### ---- Auth: Resend Activation ----
+
+### Resend activation email
+POST {{host}}/auth/resend-activation
+Content-Type: application/json
+
+{
+  "login": "testuser"
+}
+
+### ---- Auth: Login ----
+
+### Login
+# @name login
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "login": "testuser",
+  "password": "password123"
+}
+
+### ---- Auth: Refresh ----
+
+### Refresh tokens
+# @name refresh
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### ---- Auth: Logout ----
+
+### Logout (revoke refresh token)
+POST {{host}}/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{login.response.body.refreshToken}}"
+}
+
+### ---- Auth: Password Reset ----
+
+### Request password reset
+POST {{host}}/auth/request-password-reset
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+### Reset password (paste key from reset email)
+POST {{host}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "key": "<reset-key>",
+  "newPassword": "newpassword123"
+}
+
+### ---- Users ----
+
+### Change password (requires auth)
+PATCH {{host}}/users/{{login.response.body.user.id}}/password
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+
+### Delete account (requires auth)
+DELETE {{host}}/users/{{login.response.body.user.id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "password": "password123"
+}

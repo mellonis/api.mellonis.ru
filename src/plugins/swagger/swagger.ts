@@ -12,6 +12,15 @@ const swaggerPlugin = fastifyPlugin(async (fastify) => {
 				title: 'Documentation for Poetry API',
 				version: '2.0.0',
 			},
+			components: {
+				securitySchemes: {
+					bearerAuth: {
+						type: 'http',
+						scheme: 'bearer',
+						bearerFormat: 'JWT',
+					},
+				},
+			},
 		},
 		transform: jsonSchemaTransform,
 	});
