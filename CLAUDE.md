@@ -37,9 +37,10 @@ ACTIVATION_KEY_TTL=86400         # required, seconds (see ../CLAUDE.md → Verif
 RESET_KEY_TTL=3600               # required, seconds (see ../CLAUDE.md → Verification Key TTLs)
 SMTP_HOST=smtp.protonmail.ch
 SMTP_PORT=587
-SMTP_USER=notifier@mellonis.ru
-SMTP_PASS=<password>
-SMTP_FROM="Система оповещений <notifier@mellonis.ru>"  # required (no fallback to SMTP_USER — would leak credentials)
+SMTP_LOGIN=notifier@mellonis.ru
+SMTP_PASSWORD=<password>
+SMTP_FROM_NAME=Система оповещений        # required, display name for From header
+SMTP_FROM_ADDRESS=notifier@mellonis.ru   # required, email address for From header (no fallback to SMTP_LOGIN — would leak credentials)
 ALLOWED_ORIGINS=https://poetry.mellonis.ru,https://poetry-old2.mellonis.ru  # required, comma-separated whitelist of client origins for email links
 ```
 
