@@ -25,6 +25,7 @@ export const thingsOfTheDayFallbackQuery = `
 		SELECT id
 		FROM thing
 		WHERE exclude_from_daily = FALSE
+			AND SUBSTRING(finish_date, 6, 2) != DATE_FORMAT(CURDATE(), '%m')
 		ORDER BY RAND(TO_DAYS(CURDATE()))
 		LIMIT 1
 	) AS chosen ON v_things_info.thing_id = chosen.id;
