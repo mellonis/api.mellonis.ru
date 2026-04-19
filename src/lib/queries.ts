@@ -16,3 +16,7 @@ export const thingFields = `
 	(SELECT COUNT(*) FROM vote WHERE r_thing_id = thing_id AND vote > 0) AS votesPlus,
 	(SELECT COUNT(*) FROM vote WHERE r_thing_id = thing_id AND vote < 0) AS votesMinus
 `;
+
+export const userVoteField = `
+	(SELECT vote FROM vote WHERE r_thing_id = thing_id AND r_user_id = ?) AS userVote
+`;

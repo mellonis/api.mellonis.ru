@@ -7,6 +7,8 @@ import { errorResponse } from '../../lib/schemas.js';
 export async function sectionsPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: sections...');
 
+	fastify.addHook('onRequest', fastify.optionalVerifyJwt);
+
 	fastify.get('/', {
 		schema: {
 			description: 'List all sections.',
@@ -45,7 +47,9 @@ export async function sectionsPlugin(fastify: FastifyInstance) {
 					return reply.code(404).send();
 				}
 
-				return await getSectionThings(fastify.mysql, request.params.id);
+				const userId = request.user?.sub;
+
+				return await getSectionThings(fastify.mysql, request.params.id, userId);
 			} catch (error) {
 				request.log.error(error);
 				reply.status(500).send({ error: 'Internal server error' });

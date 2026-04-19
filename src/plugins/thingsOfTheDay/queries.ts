@@ -1,4 +1,4 @@
-import { thingFields } from '../../lib/queries.js';
+import { thingFields, userVoteField } from '../../lib/queries.js';
 
 const extendedThingFields = `
 	${thingFields},
@@ -18,8 +18,34 @@ export const thingsForDateQuery = `
 	ORDER BY thing_finish_date DESC;
 `;
 
+export const thingsForDateWithUserVoteQuery = `
+	SELECT ${extendedThingFields},
+	${userVoteField}
+	FROM v_things_info
+	JOIN thing ON thing.id = v_things_info.thing_id
+	WHERE thing.exclude_from_daily = FALSE
+		AND (SUBSTRING(thing_finish_date, 6) = DATE_FORMAT(CURDATE(), '%m-%d')
+		     OR (SUBSTRING(thing_finish_date, 6, 2) = DATE_FORMAT(CURDATE(), '%m') AND SUBSTRING(thing_finish_date, 9) = '00'
+		         AND CURDATE() = LAST_DAY(CURDATE())))
+	ORDER BY thing_finish_date DESC;
+`;
+
 export const thingsOfTheDayFallbackQuery = `
 	SELECT ${extendedThingFields}
+	FROM v_things_info
+	JOIN (
+		SELECT id
+		FROM thing
+		WHERE exclude_from_daily = FALSE
+			AND SUBSTRING(finish_date, 6, 2) != DATE_FORMAT(CURDATE(), '%m')
+		ORDER BY RAND(TO_DAYS(CURDATE()))
+		LIMIT 1
+	) AS chosen ON v_things_info.thing_id = chosen.id;
+`;
+
+export const thingsOfTheDayFallbackWithUserVoteQuery = `
+	SELECT ${extendedThingFields},
+	${userVoteField}
 	FROM v_things_info
 	JOIN (
 		SELECT id

@@ -6,6 +6,8 @@ import { errorResponse } from '../../lib/schemas.js';
 export async function thingsOfTheDayPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: thingsOfTheDay...');
 
+	fastify.addHook('onRequest', fastify.optionalVerifyJwt);
+
 	fastify.get('/', {
 		schema: {
 			description: 'Get things matching today\'s date, or a random daily selection as fallback.',
@@ -16,7 +18,9 @@ export async function thingsOfTheDayPlugin(fastify: FastifyInstance) {
 			},
 		}, handler: async (request, reply) => {
 			try {
-				return await getThingsOfTheDay(fastify.mysql);
+				const userId = request.user?.sub;
+
+				return await getThingsOfTheDay(fastify.mysql, userId);
 			} catch (error) {
 				request.log.error(error);
 				reply.status(500).send({ error: 'Internal server error' });

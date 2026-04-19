@@ -1,4 +1,4 @@
-import { thingFields } from '../../lib/queries.js';
+import { thingFields, userVoteField } from '../../lib/queries.js';
 
 const sectionFields = `
 	section_identifier   AS id,
@@ -30,6 +30,13 @@ const extendedThingFields = `
 
 export const sectionThingsQuery = `
 	SELECT ${extendedThingFields}
+	FROM v_things_info
+	WHERE section_identifier = ?;
+`;
+
+export const sectionThingsWithUserVoteQuery = `
+	SELECT ${extendedThingFields},
+	${userVoteField}
 	FROM v_things_info
 	WHERE section_identifier = ?;
 `;

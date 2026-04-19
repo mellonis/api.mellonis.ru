@@ -33,4 +33,5 @@ export const thingSchema = z.object({
 		plus: z.number().int().min(0),
 		minus: z.number().int().min(0),
 	}),
+	userVote: z.optional(z.number().int().min(-1).max(1).nullable()),
 });

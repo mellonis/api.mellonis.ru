@@ -29,6 +29,8 @@ function buildApp(mysql: MySQLPromisePool) {
 	app.setValidatorCompiler(validatorCompiler);
 	app.setSerializerCompiler(serializerCompiler);
 	app.decorate('mysql', mysql);
+	app.decorateRequest('user', null);
+	app.decorate('optionalVerifyJwt', async () => {});
 	app.register(sectionsPlugin, { prefix: '/sections' });
 
 	return app;
