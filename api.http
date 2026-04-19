@@ -117,3 +117,23 @@ Authorization: Bearer {{login.response.body.accessToken}}
 {
   "password": "password123"
 }
+
+### ---- Votes ----
+
+### Cast or update a vote (requires auth + canVote)
+PUT {{host}}/things/1/vote
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "vote": 1
+}
+
+### Remove a vote (vote: 0, requires auth + canVote)
+PUT {{host}}/things/1/vote
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "vote": 0
+}

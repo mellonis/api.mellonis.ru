@@ -56,6 +56,8 @@ const thingRow = {
 	seoKeywords: null,
 	info: null,
 	notes: null,
+	votesPlus: 0,
+	votesMinus: 0,
 };
 
 function createQueryFailingMysql(firstQueryResult: Record<string, unknown>[], error = new Error('DB error')): MySQLPromisePool {
@@ -151,6 +153,7 @@ describe('GET /sections/:id', () => {
 			firstLines: ['First line', 'Second line'],
 			finishDate: '2024-01-01',
 			text: 'Full poem text',
+			votes: { plus: 0, minus: 0 },
 		}]);
 	});
 

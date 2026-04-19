@@ -29,4 +29,8 @@ export const thingSchema = z.object({
 			}))),
 		})),
 	})),
+	votes: z.object({
+		plus: z.number().int().min(0),
+		minus: z.number().int().min(0),
+	}),
 });

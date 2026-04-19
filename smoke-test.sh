@@ -241,9 +241,30 @@ else
     FAIL=$((FAIL + 2))
 fi
 
-# 10. Logout
+# 10. Voting
 bold ""
-bold "10. Logout"
+bold "10. Voting"
+
+if [ -n "$ACCESS_TOKEN" ]; then
+    # Cast a vote
+    parse_response "$(request PUT /things/1/vote "{\"vote\":1}" "$ACCESS_TOKEN")"
+    assert_status "PUT /things/1/vote (upvote)" 200 "$RESPONSE_STATUS"
+
+    # Change vote
+    parse_response "$(request PUT /things/1/vote "{\"vote\":-1}" "$ACCESS_TOKEN")"
+    assert_status "PUT /things/1/vote (downvote)" 200 "$RESPONSE_STATUS"
+
+    # Remove vote
+    parse_response "$(request PUT /things/1/vote "{\"vote\":0}" "$ACCESS_TOKEN")"
+    assert_status "PUT /things/1/vote (remove)" 200 "$RESPONSE_STATUS"
+else
+    red "  SKIP  Voting (no access token)"
+    FAIL=$((FAIL + 3))
+fi
+
+# 11. Logout
+bold ""
+bold "11. Logout"
 
 if [ -n "$REFRESH_TOKEN" ]; then
     parse_response "$(request POST /auth/logout "{\"refreshToken\":\"${REFRESH_TOKEN}\"}")"
@@ -257,9 +278,9 @@ else
     FAIL=$((FAIL + 2))
 fi
 
-# 11. Cleanup — delete the test user
+# 12. Cleanup — delete the test user
 bold ""
-bold "11. Cleanup"
+bold "12. Cleanup"
 
 # Login fresh for deletion
 parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
