@@ -12,5 +12,7 @@ export const thingFields = `
 	thing_info                      AS info,
 	(SELECT CONCAT('[', GROUP_CONCAT(JSON_QUOTE(text) ORDER BY id SEPARATOR ','), ']')
 	 FROM thing_note
-	 WHERE r_thing_id = thing_id)   AS notes
+	 WHERE r_thing_id = thing_id)   AS notes,
+	(SELECT COUNT(*) FROM vote WHERE r_thing_id = thing_id AND vote > 0) AS votesPlus,
+	(SELECT COUNT(*) FROM vote WHERE r_thing_id = thing_id AND vote < 0) AS votesMinus
 `;

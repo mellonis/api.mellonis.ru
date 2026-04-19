@@ -57,6 +57,7 @@ Fastify app using a plugin-based structure under `src/plugins/`:
 - **`sections/`** — routes prefixed `/sections`
 - **`thingsOfTheDay/`** — routes prefixed `/things-of-the-day`
 - **`users/`** — routes prefixed `/users` (change password, delete account)
+- **`votes/`** — routes prefixed `/things` for voting (`GET/PUT /:thingId/vote`). Requires auth + `canVote` right. `PUT` with `vote: 0` removes the vote. All mutations return updated `{ plus, minus }` counts
 
 Each route plugin is split into: `*.ts` (handler), `schemas.ts`, `queries.ts`, `databaseHelpers.ts`.
 

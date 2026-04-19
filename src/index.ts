@@ -10,6 +10,7 @@ import { authPlugin } from './plugins/auth/auth.js';
 import { authRoutesPlugin } from './plugins/auth/authRoutes.js';
 import { usersPlugin } from './plugins/users/users.js';
 import { authNotifierPlugin } from './plugins/authNotifier/authNotifier.js';
+import { votesPlugin } from './plugins/votes/votes.js';
 
 const fastify: FastifyInstance = Fastify({
 	logger: process.env.NODE_ENV === 'production'
@@ -33,6 +34,7 @@ fastify.register(sectionsPlugin, { prefix: '/sections' });
 fastify.register(thingsOfTheDayPlugin, { prefix: '/things-of-the-day' });
 fastify.register(authRoutesPlugin, { prefix: '/auth' });
 fastify.register(usersPlugin, { prefix: '/users' });
+fastify.register(votesPlugin, { prefix: '/things' });
 
 async function main() {
 	await fastify.listen({
