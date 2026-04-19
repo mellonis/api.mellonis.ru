@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import { sectionsPlugin } from './plugins/sections/sections.js';
 import { databasePlugin } from './plugins/database/database.js';
@@ -11,6 +12,8 @@ import { authRoutesPlugin } from './plugins/auth/authRoutes.js';
 import { usersPlugin } from './plugins/users/users.js';
 import { authNotifierPlugin } from './plugins/authNotifier/authNotifier.js';
 import { votesPlugin } from './plugins/votes/votes.js';
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 
 const fastify: FastifyInstance = Fastify({
 	logger: process.env.NODE_ENV === 'production'
@@ -26,6 +29,12 @@ fastify.addHook('onSend', async (request, reply) => {
 fastify.setValidatorCompiler(validatorCompiler);
 fastify.setSerializerCompiler(serializerCompiler);
 
+fastify.register(cors, {
+	origin: allowedOrigins,
+	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+	credentials: true,
+});
 fastify.register(databasePlugin);
 fastify.register(authPlugin);
 fastify.register(authNotifierPlugin);
