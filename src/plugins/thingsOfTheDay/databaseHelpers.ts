@@ -1,5 +1,5 @@
 import type { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
-import { thingsForDateQuery, thingsOfTheDayFallbackQuery } from './queries.js';
+import { thingsForDateQuery, thingsForDateWithUserVoteQuery, thingsOfTheDayFallbackQuery, thingsOfTheDayFallbackWithUserVoteQuery } from './queries.js';
 import type { ThingsOfTheDay } from './schemas.js';
 import { mapThingBaseRow } from '../../lib/mappers.js';
 import { withConnection } from '../../lib/databaseHelpers.js';
@@ -29,12 +29,16 @@ const groupByThingId = (rows: MySQLRowDataPacket[]): ThingsOfTheDay[] => {
 	return Array.from(map.values());
 };
 
-export const getThingsOfTheDay = async (mysql: MySQLPromisePool): Promise<ThingsOfTheDay[]> =>
+export const getThingsOfTheDay = async (mysql: MySQLPromisePool, userId?: number): Promise<ThingsOfTheDay[]> =>
 	withConnection(mysql, async (connection) => {
-		let [rows] = await connection.query<MySQLRowDataPacket[]>(thingsForDateQuery);
+		let [rows] = userId
+			? await connection.query<MySQLRowDataPacket[]>(thingsForDateWithUserVoteQuery, [userId])
+			: await connection.query<MySQLRowDataPacket[]>(thingsForDateQuery);
 
 		if (rows.length === 0) {
-			[rows] = await connection.query<MySQLRowDataPacket[]>(thingsOfTheDayFallbackQuery);
+			[rows] = userId
+				? await connection.query<MySQLRowDataPacket[]>(thingsOfTheDayFallbackWithUserVoteQuery, [userId])
+				: await connection.query<MySQLRowDataPacket[]>(thingsOfTheDayFallbackQuery);
 		}
 
 		return groupByThingId(rows);

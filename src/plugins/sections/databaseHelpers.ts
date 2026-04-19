@@ -1,5 +1,5 @@
 import type { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
-import { sectionByIdQuery, sectionsQuery, sectionThingsQuery } from './queries.js';
+import { sectionByIdQuery, sectionsQuery, sectionThingsQuery, sectionThingsWithUserVoteQuery } from './queries.js';
 import type { Section, Thing } from './schemas.js';
 import { mapThingBaseRow, parseJSON } from '../../lib/mappers.js';
 import { withConnection } from '../../lib/databaseHelpers.js';
@@ -45,8 +45,14 @@ const mapThingRow = (row: MySQLRowDataPacket): Thing => ({
 	position: row.position,
 });
 
-export const getSectionThings = async (mysql: MySQLPromisePool, id: string): Promise<Thing[]> =>
+export const getSectionThings = async (mysql: MySQLPromisePool, id: string, userId?: number): Promise<Thing[]> =>
 	withConnection(mysql, async (connection) => {
+		if (userId) {
+			const [things] = await connection.query<MySQLRowDataPacket[]>(sectionThingsWithUserVoteQuery, [userId, id]);
+
+			return things.map(mapThingRow);
+		}
+
 		const [things] = await connection.query<MySQLRowDataPacket[]>(sectionThingsQuery, [id]);
 
 		return things.map(mapThingRow);

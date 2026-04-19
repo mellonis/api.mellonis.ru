@@ -7,6 +7,7 @@ import type { ResolvedRights } from './rights.js';
 declare module 'fastify' {
 	interface FastifyInstance {
 		verifyJwt: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+		optionalVerifyJwt: (request: FastifyRequest) => Promise<void>;
 		requireRight: (right: keyof ResolvedRights) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 	}
 	interface FastifyRequest {
@@ -58,6 +59,22 @@ const authPlugin = fastifyPlugin(async (fastify: FastifyInstance) => {
 			request.user = await verifyAccessToken(token, secret);
 		} catch {
 			return reply.code(401).send({ error: 'unauthorized', message: 'Invalid or expired token' });
+		}
+	});
+
+	fastify.decorate('optionalVerifyJwt', async (request: FastifyRequest) => {
+		const authorization = request.headers.authorization;
+
+		if (!authorization?.startsWith('Bearer ')) {
+			return;
+		}
+
+		const token = authorization.substring(7);
+
+		try {
+			request.user = await verifyAccessToken(token, secret);
+		} catch {
+			// invalid token — proceed as unauthenticated
 		}
 	});
 

@@ -30,4 +30,5 @@ export const mapThingBaseRow = (row: MySQLRowDataPacket) => ({
 	info: parseJSON(row.info) as ThingBase['info'],
 	notes: parseJSON(row.notes) as ThingBase['notes'],
 	votes: { plus: row.votesPlus as number, minus: row.votesMinus as number },
+	...(row.userVote !== undefined && { userVote: row.userVote as number | null }),
 });

@@ -27,6 +27,8 @@ function buildApp(mysql: MySQLPromisePool) {
 	app.setValidatorCompiler(validatorCompiler);
 	app.setSerializerCompiler(serializerCompiler);
 	app.decorate('mysql', mysql);
+	app.decorateRequest('user', null);
+	app.decorate('optionalVerifyJwt', async () => {});
 	app.register(thingsOfTheDayPlugin, { prefix: '/things-of-the-day' });
 
 	return app;
