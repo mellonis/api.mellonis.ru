@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import Fastify from 'fastify';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
@@ -14,6 +15,11 @@ const fastify: FastifyInstance = Fastify({
 	logger: process.env.NODE_ENV === 'production'
 		? true
 		: { transport: { target: 'pino-pretty' } },
+	genReqId: (req) => (req.headers['x-request-id'] as string) || randomUUID(),
+});
+
+fastify.addHook('onSend', async (request, reply) => {
+	reply.header('X-Request-Id', request.id);
 });
 
 fastify.setValidatorCompiler(validatorCompiler);
