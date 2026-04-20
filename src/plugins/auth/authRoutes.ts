@@ -53,24 +53,31 @@ import {
 	type ResetPasswordRequest,
 } from './schemas.js';
 
+const GROUP_ADMINS = 1;
+const GROUP_EDITORS = 2;
+
 const issueTokens = async (
 	fastify: FastifyInstance,
 	userId: number,
 	login: string,
 	userRights: number,
 	groupRights: number,
+	groupId: number,
 	tokenVersion: number,
 ) => {
 	const rights = resolveRights(userRights, groupRights);
+	const banned = isBanned(userRights) || isBanned(groupRights);
+	const isAdmin = !banned && groupId === GROUP_ADMINS;
+	const isEditor = !banned && (groupId === GROUP_ADMINS || groupId === GROUP_EDITORS);
 	const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
-	const payload: AccessTokenPayload = { sub: userId, login, tokenVersion, rights };
+	const payload: AccessTokenPayload = { sub: userId, login, isAdmin, isEditor, tokenVersion, rights };
 	const accessToken = await signAccessToken(payload, secret);
 	const refreshToken = generateRefreshToken();
 
 	await createRefreshToken(fastify.mysql, userId, hashRefreshToken(refreshToken));
 
-	return { accessToken, refreshToken, user: { id: userId, login, rights } };
+	return { accessToken, refreshToken, user: { id: userId, login, isAdmin, isEditor, rights } };
 };
 
 export async function authRoutesPlugin(fastify: FastifyInstance) {
@@ -124,7 +131,7 @@ export async function authRoutesPlugin(fastify: FastifyInstance) {
 				await updateLastLogin(fastify.mysql, user.userId);
 
 				request.log.info({ login, userId: user.userId }, 'Login successful');
-				return await issueTokens(fastify, user.userId, user.login, user.userRights, user.groupRights, user.tokenVersion);
+				return await issueTokens(fastify, user.userId, user.login, user.userRights, user.groupRights, user.groupId, user.tokenVersion);
 			} catch (error) {
 				request.log.error(error);
 				return reply.code(500).send({ error: 'Internal server error' });
@@ -160,7 +167,7 @@ export async function authRoutesPlugin(fastify: FastifyInstance) {
 				}
 
 				const { accessToken, refreshToken } = await issueTokens(
-					fastify, user.userId, user.login, user.userRights, user.groupRights, user.tokenVersion,
+					fastify, user.userId, user.login, user.userRights, user.groupRights, user.groupId, user.tokenVersion,
 				);
 
 				return { accessToken, refreshToken };
