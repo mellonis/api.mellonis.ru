@@ -5,6 +5,8 @@ import type { ResolvedRights } from './rights.js';
 export interface AccessTokenPayload {
 	sub: number;
 	login: string;
+	isAdmin: boolean;
+	isEditor: boolean;
 	tokenVersion: number;
 	rights: ResolvedRights;
 }
@@ -17,6 +19,8 @@ const getAccessTokenTtl = (): string => `${process.env.JWT_ACCESS_TOKEN_TTL!}s`;
 export const signAccessToken = async (payload: AccessTokenPayload, secret: Uint8Array): Promise<string> =>
 	new SignJWT({
 		login: payload.login,
+		isAdmin: payload.isAdmin,
+		isEditor: payload.isEditor,
 		tokenVersion: payload.tokenVersion,
 		rights: payload.rights,
 	})
@@ -32,6 +36,8 @@ export const verifyAccessToken = async (token: string, secret: Uint8Array): Prom
 	return {
 		sub: Number(payload.sub),
 		login: payload.login as string,
+		isAdmin: payload.isAdmin as boolean,
+		isEditor: payload.isEditor as boolean,
 		tokenVersion: payload.tokenVersion as number,
 		rights: payload.rights as ResolvedRights,
 	};
