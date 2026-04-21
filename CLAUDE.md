@@ -42,6 +42,7 @@ SMTP_PASSWORD=<password>
 SMTP_FROM_NAME=Система оповещений        # required, display name for From header
 SMTP_FROM_ADDRESS=notifier@mellonis.ru   # required, email address for From header (no fallback to SMTP_LOGIN — would leak credentials)
 ALLOWED_ORIGINS=https://poetry.mellonis.ru,https://poetry-old2.mellonis.ru  # required, comma-separated whitelist of client origins (CORS + email links)
+WEBAUTHN_RP_ID=mellonis.ru       # optional, WebAuthn Relying Party ID (default: mellonis.ru, use "localhost" for local dev)
 ```
 
 See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). `CONNECTION_STRING`, `JWT_SECRET`, and `ALLOWED_ORIGINS` are validated on startup. SMTP vars are required only in production (`NODE_ENV=production`); in dev mode, notifications are logged to the console instead.
@@ -53,7 +54,7 @@ See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port ov
 Fastify app using a plugin-based structure under `src/plugins/`:
 
 - **`database/`** — registers the MySQL connection pool on the Fastify instance via `@fastify/mysql`
-- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`
+- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`, `issueTokens.ts`. Sub-directory `passkey/` provides WebAuthn passkey routes (`/auth/passkey/*` for registration/login, `/auth/passkeys` for listing/deleting). RP ID is configurable via `WEBAUTHN_RP_ID` env var
 - **`authNotifier/`** — `fastify-plugin` that decorates `fastify.authNotifier` with an `AuthNotifier` implementation. In production (`NODE_ENV=production`): `EmailAuthNotifier` sends via SMTP. Otherwise: `ConsoleAuthNotifier` logs keys to pino (for local dev/testing without SMTP).
 - **`swagger/`** — mounts OpenAPI docs at `/docs` via `@fastify/swagger` + `@fastify/swagger-ui`
 - **`sections/`** — routes prefixed `/sections`

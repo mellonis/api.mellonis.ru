@@ -118,6 +118,46 @@ Authorization: Bearer {{login.response.body.accessToken}}
   "password": "password123"
 }
 
+### ---- Passkeys ----
+
+### Generate passkey registration options (requires auth)
+POST {{host}}/auth/passkey/register/options
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Verify passkey registration (requires auth)
+POST {{host}}/auth/passkey/register/verify
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "credential": {}
+}
+
+### Generate passkey login options (public, optional login filter)
+POST {{host}}/auth/passkey/login/options
+Content-Type: application/json
+
+{
+  "login": "testuser"
+}
+
+### Login with passkey (public)
+POST {{host}}/auth/passkey/login
+Content-Type: application/json
+
+{
+  "challengeId": "<challenge-id>",
+  "credential": {}
+}
+
+### List passkeys (requires auth)
+GET {{host}}/auth/passkeys
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Delete a passkey (requires auth)
+DELETE {{host}}/auth/passkeys/1
+Authorization: Bearer {{login.response.body.accessToken}}
+
 ### ---- Votes ----
 
 ### Cast or update a vote (requires auth + canVote)

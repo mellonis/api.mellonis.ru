@@ -3,19 +3,16 @@ import { z } from 'zod';
 import { errorResponse } from '../../lib/schemas.js';
 import { maskEmail } from '../../lib/maskEmail.js';
 import { checkPassword, hashPassword, needsRehash } from './password.js';
-import type { AccessTokenPayload } from './jwt.js';
-import { generateRefreshToken, hashRefreshToken, signAccessToken } from './jwt.js';
+import { hashRefreshToken } from './jwt.js';
 import {
-	clearPasswordResetRequested,
 	isBanned,
 	isEmailActivated,
 	isPasswordResetRequested,
-	resolveRights,
+	clearPasswordResetRequested,
 	setEmailActivated,
 	setPasswordResetRequested
 } from './rights.js';
 import {
-	createRefreshToken,
 	createUser,
 	deleteAllUserRefreshTokens,
 	findAndDeleteRefreshToken,
@@ -31,6 +28,7 @@ import {
 	updateLastLogin,
 	updateUserRightsAndKey,
 } from './databaseHelpers.js';
+import { issueTokens } from './issueTokens.js';
 import {
 	activateRequest,
 	type ActivateRequest,
@@ -52,33 +50,6 @@ import {
 	resetPasswordRequest,
 	type ResetPasswordRequest,
 } from './schemas.js';
-
-const GROUP_ADMINS = 1;
-const GROUP_EDITORS = 2;
-
-const issueTokens = async (
-	fastify: FastifyInstance,
-	userId: number,
-	login: string,
-	userRights: number,
-	groupRights: number,
-	groupId: number,
-	tokenVersion: number,
-) => {
-	const rights = resolveRights(userRights, groupRights);
-	const banned = isBanned(userRights) || isBanned(groupRights);
-	const isAdmin = !banned && groupId === GROUP_ADMINS;
-	const isEditor = !banned && (groupId === GROUP_ADMINS || groupId === GROUP_EDITORS);
-	const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
-
-	const payload: AccessTokenPayload = { sub: userId, login, isAdmin, isEditor, tokenVersion, rights };
-	const accessToken = await signAccessToken(payload, secret);
-	const refreshToken = generateRefreshToken();
-
-	await createRefreshToken(fastify.mysql, userId, hashRefreshToken(refreshToken));
-
-	return { accessToken, refreshToken, user: { id: userId, login, isAdmin, isEditor, rights } };
-};
 
 export async function authRoutesPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: authRoutes...');
