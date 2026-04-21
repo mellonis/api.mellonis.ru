@@ -4,4 +4,3 @@ build
 .claude
 
 api.mellonis.ru.tar.gz
-run-poetry.api.sh
