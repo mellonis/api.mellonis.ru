@@ -1,10 +1,15 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - master
     types: [ opened, synchronize, reopened, closed ]
+    paths-ignore:
+      - '**/*.md'
+      - 'api.http'
+      - 'smoke-test*.sh'
 
 jobs:
   ci:
@@ -26,32 +31,38 @@ jobs:
 
   build-and-deploy:
     needs: ci
-    if: github.event.pull_request.merged == true
-    env:
-      SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-deploy'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
-      - name: Build image
-        run: docker build . -t api.mellonis.ru
-      - name: Save image
-        run: docker save api.mellonis.ru | gzip > api.mellonis.ru.tar.gz
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
-      - name: Copy image
+      - name: Deploy on VPS
         env:
-          SSH_HOST: ${{secrets.SSH_HOST}}
-          SSH_USER: ${{secrets.SSH_USER}}
-          SSH_TARGET: ${{secrets.SSH_TARGET}}
-        run: scp -o StrictHostKeyChecking=no ./api.mellonis.ru.tar.gz $SSH_USER@$SSH_HOST:$SSH_TARGET
-      - name: Run container
-        env:
-          SSH_HOST: ${{secrets.SSH_HOST}}
-          SSH_USER: ${{secrets.SSH_USER}}
-          SSH_TARGET: ${{secrets.SSH_TARGET}}
-        run: ssh $SSH_USER@$SSH_HOST "cd $SSH_TARGET && ./run-poetry.api.sh"
-
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_TARGET: ${{ secrets.SSH_TARGET }}
+          IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST \
+            "IMAGE=$IMAGE $SSH_TARGET/run-poetry.api.sh"
 
