@@ -12,6 +12,7 @@ import { authRoutesPlugin } from './plugins/auth/authRoutes.js';
 import { usersPlugin } from './plugins/users/users.js';
 import { authNotifierPlugin } from './plugins/authNotifier/authNotifier.js';
 import { votesPlugin } from './plugins/votes/votes.js';
+import { bookmarksPlugin } from './plugins/bookmarks/bookmarks.js';
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 
@@ -44,6 +45,7 @@ fastify.register(thingsOfTheDayPlugin, { prefix: '/things-of-the-day' });
 fastify.register(authRoutesPlugin, { prefix: '/auth' });
 fastify.register(usersPlugin, { prefix: '/users' });
 fastify.register(votesPlugin, { prefix: '/things' });
+fastify.register(bookmarksPlugin, { prefix: '/bookmarks' });
 
 async function main() {
 	await fastify.listen({
