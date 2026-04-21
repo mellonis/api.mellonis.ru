@@ -25,6 +25,7 @@ export const thingSchema = z.object({
 		attachments: z.optional(z.object({
 			audio: z.optional(z.array(z.object({
 				preload: z.optional(z.enum(['none'])),
+				title: z.optional(z.string()),
 				sources: z.array(z.object({ src: z.string(), type: z.enum(['audio/mpeg']) })),
 			}))),
 		})),
