@@ -78,4 +78,4 @@ jobs:
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST \
-            "IMAGE=$IMAGE $SSH_TARGET/run-poetry.api.sh"
+            "IMAGE=$IMAGE $SSH_TARGET/run.sh poetry-api"
