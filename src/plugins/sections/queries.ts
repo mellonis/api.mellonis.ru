@@ -1,12 +1,14 @@
 import { thingFields, userVoteField } from '../../lib/queries.js';
 
 const sectionFields = `
-	section_identifier   AS id,
-	section_type_id      AS typeId,
-	section_title        AS title,
-	section_description  AS description,
+	section_identifier        AS id,
+	section_type_id           AS typeId,
+	section_title             AS title,
+	section_description       AS description,
+	section_annotation_text   AS annotationText,
+	section_annotation_author AS annotationAuthor,
 	settings,
-	section_things_count AS thingsCount
+	section_things_count      AS thingsCount
 `;
 
 export const sectionsQuery = `

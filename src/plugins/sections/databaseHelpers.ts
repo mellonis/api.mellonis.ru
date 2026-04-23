@@ -9,7 +9,7 @@ type SectionSettings = { show_all?: boolean; things_order?: 1 | 0 | -1 };
 const parseSettings = (settings: string | null): SectionSettings =>
 	(parseJSON(settings) as SectionSettings) ?? {};
 
-const mapSectionRow = ({ id, typeId, title, description, settings, thingsCount }: MySQLRowDataPacket): Section => {
+const mapSectionRow = ({ id, typeId, title, description, annotationText, annotationAuthor, settings, thingsCount }: MySQLRowDataPacket): Section => {
 	const { show_all: showAll = false, things_order: thingsOrder = 1 } = parseSettings(settings);
 
 	return {
@@ -17,6 +17,9 @@ const mapSectionRow = ({ id, typeId, title, description, settings, thingsCount }
 		typeId,
 		title,
 		description: description ?? undefined,
+		annotation: annotationText
+			? { text: annotationText, author: annotationAuthor ?? undefined }
+			: undefined,
 		settings: { showAll, thingsOrder },
 		thingsCount,
 	};

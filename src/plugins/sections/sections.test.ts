@@ -41,6 +41,8 @@ const sectionRow = {
 	typeId: 1,
 	title: 'Poetry',
 	description: null,
+	annotationText: null,
+	annotationAuthor: null,
 	settings: JSON.stringify({ show_all: false, things_order: 1 }),
 	thingsCount: 2,
 };
@@ -123,6 +125,40 @@ describe('GET /sections', () => {
 		const response = await app.inject({ method: 'GET', url: '/sections' });
 
 		expect(response.json()[0].description).toBe('A poetry collection');
+	});
+
+	it('omits annotation when annotationText is null', async () => {
+		const app = buildApp(createMockMysql([sectionRow]));
+		const response = await app.inject({ method: 'GET', url: '/sections' });
+
+		expect(response.json()[0].annotation).toBeUndefined();
+	});
+
+	it('includes annotation with text and author', async () => {
+		const app = buildApp(createMockMysql([{
+			...sectionRow,
+			annotationText: 'Some epigraph text',
+			annotationAuthor: 'Some Author',
+		}]));
+		const response = await app.inject({ method: 'GET', url: '/sections' });
+
+		expect(response.json()[0].annotation).toEqual({
+			text: 'Some epigraph text',
+			author: 'Some Author',
+		});
+	});
+
+	it('includes annotation with text only when author is null', async () => {
+		const app = buildApp(createMockMysql([{
+			...sectionRow,
+			annotationText: 'Some epigraph text',
+			annotationAuthor: null,
+		}]));
+		const response = await app.inject({ method: 'GET', url: '/sections' });
+
+		expect(response.json()[0].annotation).toEqual({
+			text: 'Some epigraph text',
+		});
 	});
 });
 

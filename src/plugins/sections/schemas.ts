@@ -13,12 +13,18 @@ enum SectionThingsOrder {
 	Desc = -1,
 }
 
+const annotationSchema = z.object({
+	text: z.string(),
+	author: z.optional(z.string()),
+});
+
 export const sectionsResponse = z.array(
 	z.object({
 		id: z.string(),
 		typeId: z.enum(SectionType),
 		title: z.string(),
 		description: z.optional(z.string()),
+		annotation: z.optional(annotationSchema),
 		settings: z.object({
 			showAll: z.boolean(),
 			thingsOrder: z.enum(SectionThingsOrder),
