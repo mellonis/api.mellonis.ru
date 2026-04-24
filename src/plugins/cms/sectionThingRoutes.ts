@@ -10,6 +10,7 @@ import {
 	reorderThingsInSection,
 	thingExists,
 	getSectionThingIds,
+	getAllThings,
 } from './databaseHelpers.js';
 import {
 	sectionIdParam,
@@ -25,6 +26,27 @@ import {
 import { requireCanEditContent } from './hooks.js';
 
 export async function sectionThingRoutes(fastify: FastifyInstance) {
+	fastify.get('/things', {
+		schema: {
+			description: 'List all published things.',
+			tags: ['CMS'],
+			response: {
+				200: cmsSectionThingsResponse,
+				401: authErrorResponse,
+				403: authErrorResponse,
+				500: errorResponse,
+			},
+		},
+		handler: async (request, reply) => {
+			try {
+				return await getAllThings(fastify.mysql);
+			} catch (error) {
+				request.log.error(error);
+				return reply.code(500).send({ error: 'Internal server error' });
+			}
+		},
+	});
+
 	fastify.get<{ Params: SectionIdParam }>('/sections/:id/things', {
 		schema: {
 			description: 'List things in a section.',
