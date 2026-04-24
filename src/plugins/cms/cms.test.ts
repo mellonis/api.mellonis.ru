@@ -323,7 +323,7 @@ describe('PUT /cms/sections/:id/things/reorder', () => {
 			method: 'PUT',
 			url: '/cms/sections/10/things/reorder',
 			headers: { authorization: `Bearer ${token}` },
-			payload: { thingIds: [1, 3] },
+			payload: [1, 3],
 		});
 
 		expect(response.statusCode).toBe(400);

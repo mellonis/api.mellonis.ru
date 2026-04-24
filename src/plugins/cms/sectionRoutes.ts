@@ -211,8 +211,8 @@ export async function sectionRoutes(fastify: FastifyInstance) {
 		},
 		handler: async (request, reply) => {
 			try {
-				await reorderSections(fastify.mysql, request.body.sectionIds);
-				request.log.info({ count: request.body.sectionIds.length }, 'Sections reordered');
+				await reorderSections(fastify.mysql, request.body);
+				request.log.info({ count: request.body.length }, 'Sections reordered');
 				return await getCmsSections(fastify.mysql);
 			} catch (error) {
 				request.log.error(error);

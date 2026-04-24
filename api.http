@@ -200,9 +200,7 @@ PUT {{host}}/cms/sections/reorder
 Content-Type: application/json
 Authorization: Bearer {{login.response.body.accessToken}}
 
-{
-  "sectionIds": [10, 11, 12]
-}
+[10, 11, 12]
 
 ### ---- CMS: Things in Section ----
 
@@ -228,9 +226,7 @@ PUT {{host}}/cms/sections/10/things/reorder
 Content-Type: application/json
 Authorization: Bearer {{login.response.body.accessToken}}
 
-{
-  "thingIds": [3, 1, 2]
-}
+[3, 1, 2]
 
 ### ---- Votes ----
 
