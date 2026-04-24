@@ -22,6 +22,7 @@ import {
 	updateThingPositionQuery,
 	thingExistsQuery,
 	sectionThingIdsQuery,
+	allThingsQuery,
 } from './queries.js';
 
 // --- Settings mapping ---
@@ -325,4 +326,10 @@ export const getSectionThingIds = async (mysql: MySQLPromisePool, sectionId: num
 	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionThingIdsQuery, [sectionId]);
 		return rows.map((row) => row.thingId as number);
+	});
+
+export const getAllThings = async (mysql: MySQLPromisePool): Promise<CmsSectionThing[]> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(allThingsQuery);
+		return rows.map(mapCmsThingRow);
 	});

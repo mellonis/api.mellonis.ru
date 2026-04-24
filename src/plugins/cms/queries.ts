@@ -134,6 +134,15 @@ export const thingExistsQuery = `
 	SELECT id FROM thing WHERE id = ?;
 `;
 
+export const allThingsQuery = `
+	SELECT
+		t.id          AS thingId,
+		t.title,
+		t.first_lines AS firstLines
+	FROM thing t
+	ORDER BY t.id DESC;
+`;
+
 export const sectionThingIdsQuery = `
 	SELECT r_thing_id AS thingId
 	FROM thing_identifier
