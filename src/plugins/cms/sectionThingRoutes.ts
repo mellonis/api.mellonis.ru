@@ -148,15 +148,15 @@ export async function sectionThingRoutes(fastify: FastifyInstance) {
 				}
 
 				const currentThingIds = await getSectionThingIds(fastify.mysql, request.params.id);
-				const requestedIds = new Set(request.body.thingIds);
+				const requestedIds = new Set(request.body);
 				const currentIds = new Set(currentThingIds);
 
 				if (requestedIds.size !== currentIds.size || ![...requestedIds].every((id) => currentIds.has(id))) {
 					return reply.code(400).send({ error: 'Thing IDs must match the current set of things in the section' });
 				}
 
-				await reorderThingsInSection(fastify.mysql, request.params.id, request.body.thingIds);
-				request.log.info({ sectionId: request.params.id, count: request.body.thingIds.length }, 'Things reordered');
+				await reorderThingsInSection(fastify.mysql, request.params.id, request.body);
+				request.log.info({ sectionId: request.params.id, count: request.body.length }, 'Things reordered');
 				return await getCmsThingsInSection(fastify.mysql, request.params.id);
 			} catch (error) {
 				request.log.error(error);

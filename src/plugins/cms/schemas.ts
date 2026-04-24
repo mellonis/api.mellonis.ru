@@ -68,9 +68,7 @@ export const updateSectionRequest = z.object({
 
 // --- Reorder sections ---
 
-export const reorderSectionsRequest = z.object({
-	sectionIds: z.array(z.number().int().positive()),
-});
+export const reorderSectionsRequest = z.array(z.number().int().positive());
 
 // --- Things in section ---
 
@@ -97,9 +95,7 @@ export const addThingRequest = z.object({
 
 // --- Reorder things in section ---
 
-export const reorderThingsRequest = z.object({
-	thingIds: z.array(z.number().int().positive()),
-});
+export const reorderThingsRequest = z.array(z.number().int().positive());
 
 // --- Inferred types ---
 
