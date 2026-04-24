@@ -241,26 +241,33 @@ export const reorderSections = async (mysql: MySQLPromisePool, sectionIds: numbe
 
 // --- Things in section ---
 
-export interface CmsSectionThing {
+export interface CmsThingItem {
 	thingId: number;
-	position: number;
 	title: string | null;
 	firstLines: string[] | null;
 }
 
-const mapCmsThingRow = (row: MySQLRowDataPacket): CmsSectionThing => ({
+export interface CmsSectionThing extends CmsThingItem {
+	position: number;
+}
+
+const mapCmsThingRow = (row: MySQLRowDataPacket): CmsThingItem => ({
 	thingId: row.thingId as number,
-	position: row.position as number,
 	title: (row.title as string) ?? null,
 	firstLines: row.firstLines
 		? splitLines(row.firstLines as string)
 		: null,
 });
 
+const mapCmsSectionThingRow = (row: MySQLRowDataPacket): CmsSectionThing => ({
+	...mapCmsThingRow(row),
+	position: row.position as number,
+});
+
 export const getCmsThingsInSection = async (mysql: MySQLPromisePool, sectionId: number): Promise<CmsSectionThing[]> =>
 	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(cmsSectionThingsQuery, [sectionId]);
-		return rows.map(mapCmsThingRow);
+		return rows.map(mapCmsSectionThingRow);
 	});
 
 export const addThingToSection = async (mysql: MySQLPromisePool, sectionId: number, thingId: number, position?: number): Promise<void> => {
@@ -328,7 +335,7 @@ export const getSectionThingIds = async (mysql: MySQLPromisePool, sectionId: num
 		return rows.map((row) => row.thingId as number);
 	});
 
-export const getAllThings = async (mysql: MySQLPromisePool): Promise<CmsSectionThing[]> =>
+export const getAllThings = async (mysql: MySQLPromisePool): Promise<CmsThingItem[]> =>
 	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(allThingsQuery);
 		return rows.map(mapCmsThingRow);
