@@ -1,5 +1,6 @@
 import type { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
 import { withConnection } from '../../lib/databaseHelpers.js';
+import { splitLines } from '../../lib/mappers.js';
 import {
 	getBookmarksQuery,
 	resolveThingIdQuery,
@@ -26,7 +27,7 @@ const mapBookmarkRow = (row: MySQLRowDataPacket): BookmarkRow => ({
 	positionInSection: row.positionInSection as number,
 	title: (row.title as string) ?? null,
 	firstLines: row.firstLines
-		? (row.firstLines as string).replaceAll('\r', '').split('\n')
+		? splitLines(row.firstLines as string)
 		: null,
 });
 

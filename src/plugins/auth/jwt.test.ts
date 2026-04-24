@@ -15,7 +15,7 @@ describe('JWT access tokens', () => {
 			isAdmin: false,
 			isEditor: true,
 			tokenVersion: 1,
-			rights: { canVote: true },
+			rights: { canVote: true, canEditContent: false },
 		};
 
 		const token = await signAccessToken(payload, secret);
@@ -26,11 +26,11 @@ describe('JWT access tokens', () => {
 		expect(decoded.isAdmin).toBe(false);
 		expect(decoded.isEditor).toBe(true);
 		expect(decoded.tokenVersion).toBe(1);
-		expect(decoded.rights).toEqual({ canVote: true });
+		expect(decoded.rights).toEqual({ canVote: true, canEditContent: false });
 	});
 
 	it('rejects a token with wrong secret', async () => {
-		const payload = { sub: 1, login: 'user', isAdmin: false, isEditor: false, tokenVersion: 0, rights: { canVote: false } };
+		const payload = { sub: 1, login: 'user', isAdmin: false, isEditor: false, tokenVersion: 0, rights: { canVote: false, canEditContent: false } };
 		const token = await signAccessToken(payload, secret);
 		const wrongSecret = new TextEncoder().encode('wrong-secret-that-is-at-least-32-chars-long');
 

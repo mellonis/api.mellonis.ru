@@ -4,6 +4,9 @@ import type { thingSchema } from './schemas.js';
 
 type ThingBase = z.infer<typeof thingSchema>;
 
+export const splitLines = (value: string): string[] =>
+	value.replaceAll('\r', '').split('\n');
+
 export const parseJSON = (value: string | null): unknown => {
 	if (!value) {
 		return undefined;
@@ -20,7 +23,7 @@ export const mapThingBaseRow = (row: MySQLRowDataPacket) => ({
 	id: row.id as number,
 	categoryId: row.categoryId,
 	title: row.title ?? undefined as string | undefined,
-	firstLines: (row.firstLines ?? undefined) ? (row.firstLines as string).replaceAll('\r', '').split('\n') : undefined,
+	firstLines: (row.firstLines ?? undefined) ? splitLines(row.firstLines as string) : undefined,
 	startDate: row.startDate ?? undefined as string | undefined,
 	finishDate: row.finishDate ?? undefined as string | undefined,
 	lastModified: row.lastModified ?? undefined as string | undefined,

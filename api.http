@@ -158,6 +158,80 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{host}}/auth/passkeys/1
 Authorization: Bearer {{login.response.body.accessToken}}
 
+### ---- CMS: Section Types ----
+
+### List section types (requires editor role)
+GET {{host}}/cms/section-types
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### ---- CMS: Sections ----
+
+### List all sections (requires editor role)
+GET {{host}}/cms/sections
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Create a section (requires editor + canEditContent)
+POST {{host}}/cms/sections
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "identifier": "newsec",
+  "title": "New Section",
+  "typeId": 1
+}
+
+### Update a section (requires editor + canEditContent)
+PUT {{host}}/cms/sections/10
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "title": "Updated Title",
+  "settings": { "showAll": true, "reverseOrder": false }
+}
+
+### Delete a section (requires editor + canEditContent, must have no things)
+DELETE {{host}}/cms/sections/10
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Reorder sections (requires editor + canEditContent)
+PUT {{host}}/cms/sections/reorder
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "sectionIds": [10, 11, 12]
+}
+
+### ---- CMS: Things in Section ----
+
+### List things in a section (requires editor role)
+GET {{host}}/cms/sections/10/things
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Add a thing to a section (requires editor + canEditContent)
+POST {{host}}/cms/sections/10/things
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "thingId": 1
+}
+
+### Remove a thing from a section (requires editor + canEditContent)
+DELETE {{host}}/cms/sections/10/things/1
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Reorder things in a section (requires editor + canEditContent)
+PUT {{host}}/cms/sections/10/things/reorder
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "thingIds": [3, 1, 2]
+}
+
 ### ---- Votes ----
 
 ### Cast or update a vote (requires auth + canVote)
