@@ -15,6 +15,7 @@ import { authNotifierPlugin } from './plugins/authNotifier/authNotifier.js';
 import { votesPlugin } from './plugins/votes/votes.js';
 import { bookmarksPlugin } from './plugins/bookmarks/bookmarks.js';
 import { authorPlugin } from './plugins/author/author.js';
+import { cmsPlugin } from './plugins/cms/cms.js';
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 
@@ -50,6 +51,7 @@ fastify.register(usersPlugin, { prefix: '/users' });
 fastify.register(votesPlugin, { prefix: '/things' });
 fastify.register(bookmarksPlugin, { prefix: '/bookmarks' });
 fastify.register(authorPlugin, { prefix: '/author' });
+fastify.register(cmsPlugin, { prefix: '/cms' });
 
 async function main() {
 	await fastify.listen({
