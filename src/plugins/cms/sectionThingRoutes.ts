@@ -14,6 +14,7 @@ import {
 } from './databaseHelpers.js';
 import {
 	sectionIdParam,
+	cmsThingsResponse,
 	cmsSectionThingsResponse,
 	thingInSectionParams,
 	addThingRequest,
@@ -28,10 +29,10 @@ import { requireCanEditContent } from './hooks.js';
 export async function sectionThingRoutes(fastify: FastifyInstance) {
 	fastify.get('/things', {
 		schema: {
-			description: 'List all published things.',
+			description: 'List all things.',
 			tags: ['CMS'],
 			response: {
-				200: cmsSectionThingsResponse,
+				200: cmsThingsResponse,
 				401: authErrorResponse,
 				403: authErrorResponse,
 				500: errorResponse,

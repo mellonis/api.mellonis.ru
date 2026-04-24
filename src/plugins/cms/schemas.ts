@@ -72,11 +72,16 @@ export const reorderSectionsRequest = z.array(z.number().int().positive());
 
 // --- Things in section ---
 
-export const cmsSectionThingItem = z.object({
+export const cmsThingItem = z.object({
 	thingId: z.number().int(),
-	position: z.number().int(),
 	title: z.string().nullable(),
 	firstLines: z.array(z.string()).nullable(),
+});
+
+export const cmsThingsResponse = z.array(cmsThingItem);
+
+export const cmsSectionThingItem = cmsThingItem.extend({
+	position: z.number().int(),
 });
 
 export const cmsSectionThingsResponse = z.array(cmsSectionThingItem);
