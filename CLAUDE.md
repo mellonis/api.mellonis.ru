@@ -22,7 +22,7 @@ node build/index.js
 
 # Smoke tests (require running server + DB)
 ./smoke-test-v1.sh [base_url]   # public endpoints only
-./smoke-test.sh [base_url]      # full auth flow (creates/deletes a test user)
+./smoke-test.sh [base_url]      # full auth flow (test cases in smoke-tests/*.sh)
 ```
 
 ## Environment

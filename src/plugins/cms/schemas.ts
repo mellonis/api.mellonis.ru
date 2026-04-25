@@ -128,6 +128,16 @@ const thingNoteItem = z.object({
 	text: z.string().min(1),
 });
 
+// SEO fields must be provided together or both be null/undefined
+const seoFieldsTogether = (d: { seoDescription?: string | null; seoKeywords?: string | null }) => {
+	if (d.seoDescription === undefined && d.seoKeywords === undefined) {
+		return true;
+	}
+
+	return (d.seoDescription == null) === (d.seoKeywords == null);
+};
+const seoFieldsTogetherMessage = { message: 'seoDescription and seoKeywords must be provided together or both be null' };
+
 // Partial date: YYYY-00-00 (year), YYYY-MM-00 (year-month), YYYY-MM-DD (full)
 // YYYY-00-DD is invalid (month=0 with day≠0)
 const partialDateRegex = /^\d{4}-(00-00|(0[1-9]|1[0-2])-(00|0[1-9]|[12]\d|3[01]))$/;
@@ -186,7 +196,7 @@ export const createThingRequest = z.object({
 	seoDescription: z.string().nullable().default(null),
 	seoKeywords: z.string().nullable().default(null),
 	info: z.string().nullable().default(null),
-});
+}).refine(seoFieldsTogether, seoFieldsTogetherMessage);
 
 export const updateThingRequest = z.object({
 	title: z.string().nullable().optional(),
@@ -202,7 +212,7 @@ export const updateThingRequest = z.object({
 	seoDescription: z.string().nullable().optional(),
 	seoKeywords: z.string().nullable().optional(),
 	info: z.string().nullable().optional(),
-});
+}).refine(seoFieldsTogether, seoFieldsTogetherMessage);
 
 // --- Inferred types ---
 

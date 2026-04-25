@@ -2,6 +2,7 @@
 #
 # Smoke test for api.mellonis.ru
 # Starts a managed server instance, captures logs to extract activation/reset keys.
+# Test cases are sourced from smoke-tests/*.sh
 # Usage: ./smoke-test.sh
 #
 
@@ -18,6 +19,7 @@ SMOKE_PORT=3033
 BASE_URL="http://localhost:${SMOKE_PORT}"
 LOG_FILE=$(mktemp)
 SERVER_PID=""
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # ---- Helpers ----
 
@@ -51,7 +53,7 @@ json_field() {
 
 request() {
     local method="$1" path="$2" body="${3:-}" token="${4:-}"
-    local headers=(-H "Content-Type: application/json" -H "Accept: application/json")
+    local headers=(-H "Accept: application/json")
     local curl_opts=(-s -w "\n%{http_code}" -X "$method")
 
     if [ -n "$token" ]; then
@@ -59,6 +61,7 @@ request() {
     fi
 
     if [ -n "$body" ]; then
+        headers+=(-H "Content-Type: application/json")
         curl_opts+=(-d "$body")
     fi
 
@@ -71,12 +74,8 @@ parse_response() {
     RESPONSE_STATUS=$(echo "$response" | tail -1)
 }
 
-# Extract a key logged by ConsoleAuthNotifier from the server log.
-# Usage: extract_key_from_log "login_value"
-# The log format is:  key: "hexstring"  (on its own line, after a line matching the login)
 extract_key_from_log() {
     local login="$1"
-    # Find the last log block mentioning this login, then extract the key
     grep -A3 "login.*\"${login}\"" "$LOG_FILE" | grep -o 'key: "[^"]*"' | tail -1 | sed 's/key: "//;s/"//'
 }
 
@@ -88,7 +87,6 @@ bold "Starting managed server on port ${SMOKE_PORT}..."
 PORT=$SMOKE_PORT node --env-file=.env build/index.js > "$LOG_FILE" 2>&1 &
 SERVER_PID=$!
 
-# Wait for server to be ready (up to 10 seconds)
 for i in $(seq 1 20); do
     if curl -s -o /dev/null "http://localhost:${SMOKE_PORT}/sections" 2>/dev/null; then
         break
@@ -116,257 +114,9 @@ bold "Smoke testing ${BASE_URL}"
 bold "Test user: ${TEST_LOGIN} / ${TEST_EMAIL}"
 bold "============================================"
 
-# 1. Public endpoints
-bold ""
-bold "1. Public endpoints"
-
-parse_response "$(request GET /sections)"
-assert_status "GET /sections" 200 "$RESPONSE_STATUS"
-
-parse_response "$(request GET /things-of-the-day)"
-assert_status "GET /things-of-the-day" 200 "$RESPONSE_STATUS"
-
-# 2. Register
-bold ""
-bold "2. Registration"
-
-parse_response "$(request POST /auth/register "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\",\"email\":\"${TEST_EMAIL}\"}")"
-assert_status "POST /auth/register (new user)" 201 "$RESPONSE_STATUS"
-
-parse_response "$(request POST /auth/register "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\",\"email\":\"${TEST_EMAIL}\"}")"
-assert_status "POST /auth/register (duplicate login)" 409 "$RESPONSE_STATUS"
-
-# 3. Login before activation
-bold ""
-bold "3. Login before activation"
-
-parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-assert_status "POST /auth/login (not activated)" 403 "$RESPONSE_STATUS"
-
-# 4. Resend activation
-bold ""
-bold "4. Resend activation"
-
-parse_response "$(request POST /auth/resend-activation "{\"login\":\"${TEST_LOGIN}\"}")"
-assert_status "POST /auth/resend-activation (unactivated user)" 200 "$RESPONSE_STATUS"
-
-parse_response "$(request POST /auth/resend-activation "{\"login\":\"nonexistent_user\"}")"
-assert_status "POST /auth/resend-activation (unknown user)" 200 "$RESPONSE_STATUS"
-
-# 5. Activate (extract key from server log)
-bold ""
-bold "5. Activation"
-
-# Give the log a moment to flush
-sleep 0.2
-ACTIVATION_KEY=$(extract_key_from_log "$TEST_LOGIN")
-
-if [ -n "$ACTIVATION_KEY" ]; then
-    parse_response "$(request POST /auth/activate "{\"key\":\"${ACTIVATION_KEY}\"}")"
-    assert_status "POST /auth/activate" 200 "$RESPONSE_STATUS"
-else
-    red "  FAIL  Could not extract activation key from server log"
-    FAIL=$((FAIL + 1))
-fi
-
-# 6. Login
-bold ""
-bold "6. Login"
-
-parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-assert_status "POST /auth/login (valid credentials)" 200 "$RESPONSE_STATUS"
-
-ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-REFRESH_TOKEN=$(json_field "refreshToken" "$RESPONSE_BODY")
-USER_ID=$(echo "$RESPONSE_BODY" | grep -o '"id":[[:space:]]*[0-9]*' | head -1 | grep -o '[0-9]*')
-
-if [ -z "$ACCESS_TOKEN" ] || [ -z "$REFRESH_TOKEN" ]; then
-    red "  FAIL  Could not extract tokens from login response"
-    FAIL=$((FAIL + 1))
-fi
-
-parse_response "$(request POST /auth/login "{\"login\":\"nobody\",\"password\":\"wrong\"}")"
-assert_status "POST /auth/login (invalid credentials)" 401 "$RESPONSE_STATUS"
-
-# 7. Refresh
-bold ""
-bold "7. Token refresh"
-
-if [ -n "$REFRESH_TOKEN" ]; then
-    parse_response "$(request POST /auth/refresh "{\"refreshToken\":\"${REFRESH_TOKEN}\"}")"
-    assert_status "POST /auth/refresh (valid token)" 200 "$RESPONSE_STATUS"
-
-    # Update tokens from refresh response
-    ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-    REFRESH_TOKEN=$(json_field "refreshToken" "$RESPONSE_BODY")
-
-    FAKE_TOKEN="0000000000000000000000000000000000000000000000000000000000000000"
-    parse_response "$(request POST /auth/refresh "{\"refreshToken\":\"${FAKE_TOKEN}\"}")"
-    assert_status "POST /auth/refresh (invalid token)" 401 "$RESPONSE_STATUS"
-else
-    red "  SKIP  Token refresh (no refresh token)"
-    FAIL=$((FAIL + 2))
-fi
-
-# 8. Protected endpoint without auth
-bold ""
-bold "8. Auth enforcement"
-
-parse_response "$(request PATCH "/users/${USER_ID}/password" "{\"currentPassword\":\"x\",\"newPassword\":\"newpass123\"}")"
-assert_status "PATCH /users/:id/password (no auth)" 401 "$RESPONSE_STATUS"
-
-# 9. Password reset flow
-bold ""
-bold "9. Password reset"
-
-parse_response "$(request POST /auth/request-password-reset "{\"email\":\"${TEST_EMAIL}\"}")"
-assert_status "POST /auth/request-password-reset" 200 "$RESPONSE_STATUS"
-
-sleep 0.2
-RESET_KEY=$(extract_key_from_log "$TEST_LOGIN")
-
-if [ -n "$RESET_KEY" ]; then
-    parse_response "$(request POST /auth/reset-password "{\"key\":\"${RESET_KEY}\",\"newPassword\":\"${TEST_PASSWORD}\"}")"
-    assert_status "POST /auth/reset-password" 200 "$RESPONSE_STATUS"
-
-    # Verify login with same password (reset set it back)
-    parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-    assert_status "POST /auth/login (after reset)" 200 "$RESPONSE_STATUS"
-
-    ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-    REFRESH_TOKEN=$(json_field "refreshToken" "$RESPONSE_BODY")
-    USER_ID=$(echo "$RESPONSE_BODY" | grep -o '"id":[[:space:]]*[0-9]*' | head -1 | grep -o '[0-9]*')
-else
-    red "  FAIL  Could not extract reset key from server log"
-    FAIL=$((FAIL + 2))
-fi
-
-# 10. CMS (requires editor role + canEditContent right)
-bold ""
-bold "10. CMS"
-
-# Promote test user to editor group (r_group_id=2) via direct DB query
-# Parse CONNECTION_STRING from .env: mysql://user:password@host:port/schema
-DB_CONN=$(grep '^CONNECTION_STRING=' .env | sed 's/^CONNECTION_STRING=//')
-DB_USER=$(echo "$DB_CONN" | sed 's|mysql://||;s|:.*||')
-DB_PASS=$(echo "$DB_CONN" | sed 's|mysql://[^:]*:||;s|@.*||')
-DB_HOST=$(echo "$DB_CONN" | sed 's|.*@||;s|:.*||')
-DB_PORT=$(echo "$DB_CONN" | sed 's|.*:||;s|/.*||')
-DB_NAME=$(echo "$DB_CONN" | sed 's|.*/||')
-
-mysql -u "$DB_USER" -p"$DB_PASS" -h "$DB_HOST" -P "$DB_PORT" "$DB_NAME" -e \
-    "UPDATE auth_user SET r_group_id = 2 WHERE login = '${TEST_LOGIN}'" 2>/dev/null
-
-# Re-login to get updated JWT with editor role
-parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-assert_status "POST /auth/login (as editor)" 200 "$RESPONSE_STATUS"
-
-ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-REFRESH_TOKEN=$(json_field "refreshToken" "$RESPONSE_BODY")
-
-if [ -n "$ACCESS_TOKEN" ]; then
-    # Read-only CMS endpoints (editor role sufficient)
-    parse_response "$(request GET /cms/section-types "" "$ACCESS_TOKEN")"
-    assert_status "GET /cms/section-types" 200 "$RESPONSE_STATUS"
-
-    parse_response "$(request GET /cms/sections "" "$ACCESS_TOKEN")"
-    assert_status "GET /cms/sections" 200 "$RESPONSE_STATUS"
-
-    # Mutation without canEditContent right — should be 403
-    parse_response "$(request POST /cms/sections "{\"identifier\":\"smtest\",\"title\":\"Smoke\",\"typeId\":1}" "$ACCESS_TOKEN")"
-    assert_status "POST /cms/sections (no canEditContent)" 403 "$RESPONSE_STATUS"
-
-    # Grant canEditContent (bit 12) to the test user
-    mysql -u "$DB_USER" -p"$DB_PASS" -h "$DB_HOST" -P "$DB_PORT" "$DB_NAME" -e \
-        "UPDATE auth_user SET rights = rights | (1 << 12) WHERE login = '${TEST_LOGIN}'" 2>/dev/null
-
-    # Re-login to get updated JWT with canEditContent
-    parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-    ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-
-    # Create section
-    parse_response "$(request POST /cms/sections "{\"identifier\":\"smtest\",\"title\":\"Smoke Test\",\"typeId\":1}" "$ACCESS_TOKEN")"
-    assert_status "POST /cms/sections (create)" 201 "$RESPONSE_STATUS"
-    SECTION_DB_ID=$(echo "$RESPONSE_BODY" | grep -o '"id":[[:space:]]*[0-9]*' | head -1 | grep -o '[0-9]*')
-
-    if [ -n "$SECTION_DB_ID" ]; then
-        # Update section
-        parse_response "$(request PUT "/cms/sections/${SECTION_DB_ID}" "{\"title\":\"Smoke Updated\",\"settings\":{\"showAll\":true,\"reverseOrder\":false}}" "$ACCESS_TOKEN")"
-        assert_status "PUT /cms/sections/:id (update)" 200 "$RESPONSE_STATUS"
-
-        # List things (empty)
-        parse_response "$(request GET "/cms/sections/${SECTION_DB_ID}/things" "" "$ACCESS_TOKEN")"
-        assert_status "GET /cms/sections/:id/things" 200 "$RESPONSE_STATUS"
-
-        # Delete section (empty, should succeed)
-        parse_response "$(request DELETE "/cms/sections/${SECTION_DB_ID}" "" "$ACCESS_TOKEN")"
-        assert_status "DELETE /cms/sections/:id" 204 "$RESPONSE_STATUS"
-    else
-        red "  SKIP  CMS section CRUD (could not extract section ID)"
-        FAIL=$((FAIL + 3))
-    fi
-else
-    red "  SKIP  CMS (no access token after editor promotion)"
-    FAIL=$((FAIL + 7))
-fi
-
-# 11. Voting
-bold ""
-bold "11. Voting"
-
-if [ -n "$ACCESS_TOKEN" ]; then
-    # Cast a vote
-    parse_response "$(request PUT /things/1/vote "{\"vote\":1}" "$ACCESS_TOKEN")"
-    assert_status "PUT /things/1/vote (upvote)" 200 "$RESPONSE_STATUS"
-
-    # Change vote
-    parse_response "$(request PUT /things/1/vote "{\"vote\":-1}" "$ACCESS_TOKEN")"
-    assert_status "PUT /things/1/vote (downvote)" 200 "$RESPONSE_STATUS"
-
-    # Remove vote
-    parse_response "$(request PUT /things/1/vote "{\"vote\":0}" "$ACCESS_TOKEN")"
-    assert_status "PUT /things/1/vote (remove)" 200 "$RESPONSE_STATUS"
-else
-    red "  SKIP  Voting (no access token)"
-    FAIL=$((FAIL + 3))
-fi
-
-# 12. Logout
-bold ""
-bold "12. Logout"
-
-if [ -n "$REFRESH_TOKEN" ]; then
-    parse_response "$(request POST /auth/logout "{\"refreshToken\":\"${REFRESH_TOKEN}\"}")"
-    assert_status "POST /auth/logout" 204 "$RESPONSE_STATUS"
-
-    # Refresh with revoked token should fail
-    parse_response "$(request POST /auth/refresh "{\"refreshToken\":\"${REFRESH_TOKEN}\"}")"
-    assert_status "POST /auth/refresh (after logout)" 401 "$RESPONSE_STATUS"
-else
-    red "  SKIP  Logout (no refresh token)"
-    FAIL=$((FAIL + 2))
-fi
-
-# 13. Cleanup — delete the test user
-bold ""
-bold "13. Cleanup"
-
-# Login fresh for deletion
-parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-if [ "$RESPONSE_STATUS" -eq 200 ]; then
-    ACCESS_TOKEN=$(json_field "accessToken" "$RESPONSE_BODY")
-    USER_ID=$(echo "$RESPONSE_BODY" | grep -o '"id":[[:space:]]*[0-9]*' | head -1 | grep -o '[0-9]*')
-
-    parse_response "$(request DELETE "/users/${USER_ID}" "{\"password\":\"${TEST_PASSWORD}\"}" "$ACCESS_TOKEN")"
-    assert_status "DELETE /users/:id (self-delete)" 204 "$RESPONSE_STATUS"
-
-    # Verify user is gone
-    parse_response "$(request POST /auth/login "{\"login\":\"${TEST_LOGIN}\",\"password\":\"${TEST_PASSWORD}\"}")"
-    assert_status "POST /auth/login (after delete)" 401 "$RESPONSE_STATUS"
-else
-    red "  SKIP  Cleanup (could not login)"
-    FAIL=$((FAIL + 2))
-fi
+for test_file in "$SCRIPT_DIR"/smoke-tests/*.sh; do
+    source "$test_file"
+done
 
 # ---- Summary ----
 

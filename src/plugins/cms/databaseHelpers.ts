@@ -491,7 +491,7 @@ export const createThing = async (
 			]);
 			const thingId = result.insertId;
 
-			if (data.seoDescription || data.seoKeywords) {
+			if (data.seoDescription && data.seoKeywords) {
 				await connection.query(upsertThingSeoQuery, [thingId, data.seoDescription, data.seoKeywords]);
 			}
 
@@ -539,12 +539,12 @@ export const updateThing = async (
 				thingId,
 			]);
 
-			// SEO upsert/delete
+			// SEO upsert/delete (schema validates both fields are provided together)
 			if (data.seoDescription !== undefined || data.seoKeywords !== undefined) {
 				const desc = data.seoDescription !== undefined ? data.seoDescription : current.seoDescription;
 				const kw = data.seoKeywords !== undefined ? data.seoKeywords : current.seoKeywords;
 
-				if (desc || kw) {
+				if (desc && kw) {
 					await connection.query(upsertThingSeoQuery, [thingId, desc, kw]);
 				} else {
 					await connection.query(deleteThingSeoQuery, [thingId]);
@@ -562,23 +562,24 @@ export const updateThing = async (
 
 			// Notes sync (array position = order)
 			if (data.notes !== undefined) {
-				const keepIds: number[] = [];
+				const keepIds = data.notes.filter((n) => n.id).map((n) => n.id as number);
 
+				// Delete removed notes first
+				if (keepIds.length > 0) {
+					await connection.query(deleteThingNotesExceptQuery, [thingId, keepIds]);
+				} else {
+					await connection.query(deleteAllThingNotesQuery, [thingId]);
+				}
+
+				// Then update existing and insert new
 				for (let i = 0; i < data.notes.length; i++) {
 					const note = data.notes[i];
 
 					if (note.id) {
 						await connection.query(updateThingNoteQuery, [note.text, i + 1, note.id, thingId]);
-						keepIds.push(note.id);
 					} else {
 						await connection.query(insertThingNoteQuery, [thingId, note.text, i + 1]);
 					}
-				}
-
-				if (keepIds.length > 0) {
-					await connection.query(deleteThingNotesExceptQuery, [thingId, keepIds]);
-				} else {
-					await connection.query(deleteAllThingNotesQuery, [thingId]);
 				}
 			}
 
