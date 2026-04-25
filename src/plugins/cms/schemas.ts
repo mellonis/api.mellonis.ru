@@ -153,7 +153,7 @@ const partialDate = z.string().refine(isValidPartialDate, { message: 'Invalid da
 
 export const cmsThingResponse = z.object({
 	id: z.number().int(),
-	title: z.string(),
+	title: z.string().nullable(),
 	text: z.string(),
 	categoryId: z.number().int(),
 	statusId: z.number().int(),
@@ -173,14 +173,14 @@ export const thingIdParam = z.object({
 });
 
 export const createThingRequest = z.object({
-	title: z.string().default('.'),
+	title: z.string().nullable().default(null),
 	text: z.string().min(1),
 	categoryId: z.number().int().min(1).max(4),
 	statusId: z.number().int().min(1).max(4).default(1),
 	startDate: partialDate.nullable().default(null),
 	finishDate: partialDate,
 	firstLines: z.string().nullable().default(null),
-	firstLinesAutoGenerating: z.boolean().default(true),
+	firstLinesAutoGenerating: z.literal(false).default(false),
 	excludeFromDaily: z.boolean().default(false),
 	notes: z.array(thingNoteItem).default([]),
 	seoDescription: z.string().nullable().default(null),
@@ -189,14 +189,14 @@ export const createThingRequest = z.object({
 });
 
 export const updateThingRequest = z.object({
-	title: z.string().optional(),
+	title: z.string().nullable().optional(),
 	text: z.string().min(1).optional(),
 	categoryId: z.number().int().min(1).max(4).optional(),
 	statusId: z.number().int().min(1).max(4).optional(),
 	startDate: partialDate.nullable().optional(),
 	finishDate: partialDate.optional(),
 	firstLines: z.string().nullable().optional(),
-	firstLinesAutoGenerating: z.boolean().optional(),
+	firstLinesAutoGenerating: z.literal(false).optional(),
 	excludeFromDaily: z.boolean().optional(),
 	notes: z.array(thingNoteItem).optional(),
 	seoDescription: z.string().nullable().optional(),

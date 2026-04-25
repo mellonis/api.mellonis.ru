@@ -415,7 +415,7 @@ export interface CmsThingNote {
 
 export interface CmsThing {
 	id: number;
-	title: string;
+	title: string | null;
 	text: string;
 	categoryId: number;
 	statusId: number;
@@ -455,7 +455,7 @@ export const getCmsThing = async (mysql: MySQLPromisePool, thingId: number): Pro
 
 		return {
 			id: row.id as number,
-			title: row.title as string,
+			title: (row.title as string) ?? null,
 			text: row.text as string,
 			categoryId: row.categoryId as number,
 			statusId: row.statusId as number,
@@ -474,7 +474,7 @@ export const getCmsThing = async (mysql: MySQLPromisePool, thingId: number): Pro
 export const createThing = async (
 	mysql: MySQLPromisePool,
 	data: {
-		title: string; text: string; categoryId: number; statusId: number;
+		title: string | null; text: string; categoryId: number; statusId: number;
 		startDate: string | null; finishDate: string;
 		firstLines: string | null; firstLinesAutoGenerating: boolean; excludeFromDaily: boolean;
 		notes: { text: string }[];
@@ -515,7 +515,7 @@ export const updateThing = async (
 	mysql: MySQLPromisePool,
 	thingId: number,
 	data: {
-		title?: string; text?: string; categoryId?: number; statusId?: number;
+		title?: string | null; text?: string; categoryId?: number; statusId?: number;
 		startDate?: string | null; finishDate?: string;
 		firstLines?: string | null; firstLinesAutoGenerating?: boolean; excludeFromDaily?: boolean;
 		notes?: { id?: number; text: string }[];
