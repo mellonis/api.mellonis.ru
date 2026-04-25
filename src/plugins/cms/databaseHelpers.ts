@@ -24,6 +24,8 @@ import {
 	thingExistsQuery,
 	sectionThingIdsQuery,
 	allThingsQuery,
+	cmsAuthorQuery,
+	updateAuthorQuery,
 } from './queries.js';
 
 // --- Settings mapping ---
@@ -351,3 +353,39 @@ export const getAllThings = async (mysql: MySQLPromisePool): Promise<CmsThingIte
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(allThingsQuery);
 		return rows.map(mapCmsThingRow);
 	});
+
+// --- Author ---
+
+export interface CmsAuthor {
+	text: string;
+	date: string;
+	seoDescription?: string;
+	seoKeywords?: string;
+}
+
+export const getCmsAuthor = async (mysql: MySQLPromisePool): Promise<CmsAuthor | null> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(cmsAuthorQuery);
+
+		if (rows.length === 0) {
+			return null;
+		}
+
+		const date: Date = rows[0].date;
+
+		return {
+			text: rows[0].text as string,
+			date: date.toISOString().slice(0, 10),
+			seoDescription: (rows[0].seoDescription as string) ?? undefined,
+			seoKeywords: (rows[0].seoKeywords as string) ?? undefined,
+		};
+	});
+
+export const updateAuthor = async (
+	mysql: MySQLPromisePool,
+	data: { text: string; date: string; seoDescription: string | null; seoKeywords: string | null },
+): Promise<void> => {
+	await withConnection(mysql, async (connection) => {
+		await connection.query(updateAuthorQuery, [data.text, data.date, data.seoDescription, data.seoKeywords]);
+	});
+};

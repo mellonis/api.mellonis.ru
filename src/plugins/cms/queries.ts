@@ -154,3 +154,21 @@ export const sectionThingIdsQuery = `
 	WHERE r_section_id = ?
 	ORDER BY thing_position_in_section;
 `;
+
+// --- Author (news id=1) ---
+
+export const cmsAuthorQuery = `
+	SELECT
+		n.text,
+		n.date,
+		n.seo_description     AS seoDescription,
+		n.seo_keywords        AS seoKeywords
+	FROM news n
+	WHERE n.id = 1;
+`;
+
+export const updateAuthorQuery = `
+	UPDATE news
+	SET text = ?, date = ?, seo_description = ?, seo_keywords = ?
+	WHERE id = 1;
+`;
