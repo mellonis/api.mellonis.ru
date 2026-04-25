@@ -4,6 +4,7 @@ import { errorResponse } from '../../lib/schemas.js';
 import { authErrorResponse } from '../auth/schemas.js';
 import {
 	getSectionTypes,
+	getSectionStatuses,
 	getCmsSections,
 	getCmsSectionById,
 	createSection,
@@ -43,6 +44,27 @@ export async function sectionRoutes(fastify: FastifyInstance) {
 		handler: async (request, reply) => {
 			try {
 				return await getSectionTypes(fastify.mysql);
+			} catch (error) {
+				request.log.error(error);
+				return reply.code(500).send({ error: 'Internal server error' });
+			}
+		},
+	});
+
+	fastify.get('/section-statuses', {
+		schema: {
+			description: 'List section statuses.',
+			tags: ['CMS'],
+			response: {
+				200: sectionTypesResponse,
+				401: authErrorResponse,
+				403: authErrorResponse,
+				500: errorResponse,
+			},
+		},
+		handler: async (request, reply) => {
+			try {
+				return await getSectionStatuses(fastify.mysql);
 			} catch (error) {
 				request.log.error(error);
 				return reply.code(500).send({ error: 'Internal server error' });
@@ -131,7 +153,7 @@ export async function sectionRoutes(fastify: FastifyInstance) {
 			try {
 				const current = await getCmsSectionById(fastify.mysql, request.params.id);
 
-				if (!current || current.typeId === 0) {
+				if (!current) {
 					return reply.code(404).send({ error: 'Section not found' });
 				}
 
@@ -175,7 +197,7 @@ export async function sectionRoutes(fastify: FastifyInstance) {
 			try {
 				const current = await getCmsSectionById(fastify.mysql, request.params.id);
 
-				if (!current || current.typeId === 0) {
+				if (!current) {
 					return reply.code(404).send({ error: 'Section not found' });
 				}
 

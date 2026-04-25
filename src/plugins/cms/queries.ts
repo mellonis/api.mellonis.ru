@@ -1,7 +1,11 @@
 // --- Section types ---
 
 export const sectionTypesQuery = `
-	SELECT id, title FROM section_type WHERE id > 0 ORDER BY id;
+	SELECT id, title FROM section_type ORDER BY id;
+`;
+
+export const sectionStatusesQuery = `
+	SELECT id, title FROM section_status ORDER BY id;
 `;
 
 // --- Sections ---
@@ -15,11 +19,11 @@ export const cmsSectionsQuery = `
 		s.annotation_text             AS annotationText,
 		s.annotation_author           AS annotationAuthor,
 		s.r_section_type_id           AS typeId,
+		s.r_section_status_id         AS statusId,
 		s.r_redirect_section_id       AS redirectSectionId,
 		s.settings,
 		s.\`order\`
 	FROM section s
-	WHERE s.r_section_type_id > 0
 	ORDER BY s.\`order\`, s.id;
 `;
 
@@ -32,6 +36,7 @@ export const cmsSectionByIdQuery = `
 		s.annotation_text             AS annotationText,
 		s.annotation_author           AS annotationAuthor,
 		s.r_section_type_id           AS typeId,
+		s.r_section_status_id         AS statusId,
 		s.r_redirect_section_id       AS redirectSectionId,
 		s.settings,
 		s.\`order\`
@@ -40,14 +45,14 @@ export const cmsSectionByIdQuery = `
 `;
 
 export const createSectionQuery = `
-	INSERT INTO section (identifier, title, description, annotation_text, annotation_author, r_section_type_id, r_redirect_section_id, settings, \`order\`)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+	INSERT INTO section (identifier, title, description, annotation_text, annotation_author, r_section_type_id, r_section_status_id, r_redirect_section_id, settings, \`order\`)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 `;
 
 export const updateSectionQuery = `
 	UPDATE section
 	SET title = ?, description = ?, annotation_text = ?, annotation_author = ?,
-		r_section_type_id = ?, r_redirect_section_id = ?, settings = ?
+		r_section_type_id = ?, r_section_status_id = ?, r_redirect_section_id = ?, settings = ?
 	WHERE id = ?;
 `;
 
@@ -76,12 +81,12 @@ export const updateSectionOrderQuery = `
 
 export const shiftSectionOrdersQuery = `
 	UPDATE section SET \`order\` = \`order\` + 1
-	WHERE r_section_type_id > 0 AND \`order\` >= ?;
+	WHERE r_section_status_id != 4 AND \`order\` >= ?;
 `;
 
 export const maxSectionOrderQuery = `
 	SELECT COALESCE(MAX(\`order\`), 0) AS maxOrder
-	FROM section WHERE r_section_type_id > 0;
+	FROM section WHERE r_section_status_id != 4;
 `;
 
 // For redirect loop detection

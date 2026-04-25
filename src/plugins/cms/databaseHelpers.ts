@@ -3,6 +3,7 @@ import { withConnection } from '../../lib/databaseHelpers.js';
 import { parseJSON, splitLines } from '../../lib/mappers.js';
 import {
 	sectionTypesQuery,
+	sectionStatusesQuery,
 	cmsSectionsQuery,
 	cmsSectionByIdQuery,
 	createSectionQuery,
@@ -58,6 +59,7 @@ export interface CmsSection {
 	annotationText: string | null;
 	annotationAuthor: string | null;
 	typeId: number;
+	statusId: number;
 	redirectSectionId: number | null;
 	settings: ApiSettings | null;
 	order: number;
@@ -71,6 +73,7 @@ const mapCmsSectionRow = (row: MySQLRowDataPacket): CmsSection => ({
 	annotationText: (row.annotationText as string) ?? null,
 	annotationAuthor: (row.annotationAuthor as string) ?? null,
 	typeId: row.typeId as number,
+	statusId: row.statusId as number,
 	redirectSectionId: (row.redirectSectionId as number) ?? null,
 	settings: dbSettingsToApi(row.settings as string | null),
 	order: row.order as number,
@@ -86,6 +89,12 @@ export interface SectionType {
 export const getSectionTypes = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
 	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionTypesQuery);
+		return rows.map((row) => ({ id: row.id as number, title: row.title as string }));
+	});
+
+export const getSectionStatuses = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(sectionStatusesQuery);
 		return rows.map((row) => ({ id: row.id as number, title: row.title as string }));
 	});
 
@@ -105,7 +114,7 @@ export const getCmsSectionById = async (mysql: MySQLPromisePool, id: number): Pr
 
 export const createSection = async (
 	mysql: MySQLPromisePool,
-	data: { identifier: string; title: string; description: string | null; annotationText: string | null; annotationAuthor: string | null; typeId: number; redirectSectionId: number | null; settings: ApiSettings | null; order?: number },
+	data: { identifier: string; title: string; description: string | null; annotationText: string | null; annotationAuthor: string | null; typeId: number; statusId?: number; redirectSectionId: number | null; settings: ApiSettings | null; order?: number },
 ): Promise<number> =>
 	withConnection(mysql, async (connection) => {
 		await connection.beginTransaction();
@@ -127,6 +136,7 @@ export const createSection = async (
 				data.annotationText,
 				data.annotationAuthor,
 				data.typeId,
+				data.statusId ?? 1,
 				data.redirectSectionId,
 				apiSettingsToDb(data.settings),
 				order,
@@ -143,7 +153,7 @@ export const createSection = async (
 export const updateSection = async (
 	mysql: MySQLPromisePool,
 	id: number,
-	data: { title?: string; description?: string | null; annotationText?: string | null; annotationAuthor?: string | null; typeId?: number; redirectSectionId?: number | null; settings?: ApiSettings | null; order?: number },
+	data: { title?: string; description?: string | null; annotationText?: string | null; annotationAuthor?: string | null; typeId?: number; statusId?: number; redirectSectionId?: number | null; settings?: ApiSettings | null; order?: number },
 	current: CmsSection,
 ): Promise<void> =>
 	withConnection(mysql, async (connection) => {
@@ -155,6 +165,7 @@ export const updateSection = async (
 				data.annotationText !== undefined ? data.annotationText : current.annotationText,
 				data.annotationAuthor !== undefined ? data.annotationAuthor : current.annotationAuthor,
 				data.typeId ?? current.typeId,
+				data.statusId ?? current.statusId,
 				data.redirectSectionId !== undefined ? data.redirectSectionId : current.redirectSectionId,
 				data.settings !== undefined ? apiSettingsToDb(data.settings) : apiSettingsToDb(current.settings),
 				id,
