@@ -160,7 +160,7 @@ export const sectionThingIdsQuery = `
 export const cmsAuthorQuery = `
 	SELECT
 		n.text,
-		n.date,
+		CAST(n.date AS CHAR) AS date,
 		n.seo_description     AS seoDescription,
 		n.seo_keywords        AS seoKeywords
 	FROM news n

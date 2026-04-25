@@ -387,11 +387,9 @@ export const getCmsAuthor = async (mysql: MySQLPromisePool): Promise<CmsAuthor |
 			return null;
 		}
 
-		const date: Date = rows[0].date;
-
 		return {
 			text: rows[0].text as string,
-			date: date.toISOString().slice(0, 10),
+			date: rows[0].date as string,
 			seoDescription: (rows[0].seoDescription as string) ?? undefined,
 			seoKeywords: (rows[0].seoKeywords as string) ?? undefined,
 		};
