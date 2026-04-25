@@ -13,5 +13,10 @@ export const getAuthor = async (mysql: MySQLPromisePool): Promise<Author | null>
 
 		const date: Date = rows[0].date;
 
-		return { text: rows[0].text, date: date.toISOString().slice(0, 10) };
+		return {
+			text: rows[0].text,
+			date: date.toISOString().slice(0, 10),
+			seoDescription: rows[0].seoDescription ?? undefined,
+			seoKeywords: rows[0].seoKeywords ?? undefined,
+		};
 	});
