@@ -172,3 +172,97 @@ export const updateAuthorQuery = `
 	SET text = ?, date = ?, seo_description = ?, seo_keywords = ?
 	WHERE id = 1;
 `;
+
+// --- Thing CRUD ---
+
+export const thingStatusesQuery = `
+	SELECT id, title FROM thing_status ORDER BY id;
+`;
+
+export const thingCategoriesQuery = `
+	SELECT id, title FROM thing_category ORDER BY id;
+`;
+
+export const cmsThingByIdQuery = `
+	SELECT
+		t.id,
+		t.title,
+		t.text,
+		t.r_thing_category_id          AS categoryId,
+		t.r_thing_status_id            AS statusId,
+		CAST(t.start_date AS CHAR)     AS startDate,
+		CAST(t.finish_date AS CHAR)    AS finishDate,
+		t.first_lines                  AS firstLines,
+		t.first_lines_auto_generating  AS firstLinesAutoGenerating,
+		t.exclude_from_daily           AS excludeFromDaily,
+		ts.description                 AS seoDescription,
+		ts.keywords                    AS seoKeywords,
+		ti.text                        AS info
+	FROM thing t
+	LEFT JOIN thing_seo ts ON ts.r_thing_id = t.id
+	LEFT JOIN thing_info ti ON ti.r_thing_id = t.id
+	WHERE t.id = ?;
+`;
+
+export const thingNotesQuery = `
+	SELECT id, text FROM thing_note WHERE r_thing_id = ? ORDER BY \`order\`, id;
+`;
+
+export const createThingQuery = `
+	INSERT INTO thing (title, text, r_thing_category_id, r_thing_status_id, start_date, finish_date,
+		first_lines, first_lines_auto_generating, exclude_from_daily, last_modified)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW());
+`;
+
+export const updateThingQuery = `
+	UPDATE thing SET
+		title = ?, text = ?, r_thing_category_id = ?, r_thing_status_id = ?,
+		start_date = ?, finish_date = ?,
+		first_lines = ?, first_lines_auto_generating = ?, exclude_from_daily = ?,
+		last_modified = NOW()
+	WHERE id = ?;
+`;
+
+export const deleteThingQuery = `
+	DELETE FROM thing WHERE id = ?;
+`;
+
+export const thingInSectionsCountQuery = `
+	SELECT COUNT(*) AS cnt FROM thing_identifier WHERE r_thing_id = ?;
+`;
+
+export const upsertThingSeoQuery = `
+	INSERT INTO thing_seo (r_thing_id, description, keywords)
+	VALUES (?, ?, ?)
+	ON DUPLICATE KEY UPDATE description = VALUES(description), keywords = VALUES(keywords);
+`;
+
+export const deleteThingSeoQuery = `
+	DELETE FROM thing_seo WHERE r_thing_id = ?;
+`;
+
+export const upsertThingInfoQuery = `
+	INSERT INTO thing_info (r_thing_id, text)
+	VALUES (?, ?)
+	ON DUPLICATE KEY UPDATE text = VALUES(text);
+`;
+
+export const deleteThingInfoQuery = `
+	DELETE FROM thing_info WHERE r_thing_id = ?;
+`;
+
+export const insertThingNoteQuery = `
+	INSERT INTO thing_note (r_thing_id, text, \`order\`) VALUES (?, ?, ?);
+`;
+
+export const updateThingNoteQuery = `
+	UPDATE thing_note SET text = ?, \`order\` = ? WHERE id = ? AND r_thing_id = ?;
+`;
+
+export const deleteThingNotesExceptQuery = `
+	DELETE FROM thing_note WHERE r_thing_id = ? AND id NOT IN (?);
+`;
+
+export const deleteAllThingNotesQuery = `
+	DELETE FROM thing_note WHERE r_thing_id = ?;
+`;

@@ -26,6 +26,22 @@ import {
 	allThingsQuery,
 	cmsAuthorQuery,
 	updateAuthorQuery,
+	thingStatusesQuery,
+	thingCategoriesQuery,
+	cmsThingByIdQuery,
+	thingNotesQuery,
+	createThingQuery,
+	updateThingQuery,
+	deleteThingQuery,
+	thingInSectionsCountQuery,
+	upsertThingSeoQuery,
+	deleteThingSeoQuery,
+	upsertThingInfoQuery,
+	deleteThingInfoQuery,
+	insertThingNoteQuery,
+	updateThingNoteQuery,
+	deleteThingNotesExceptQuery,
+	deleteAllThingNotesQuery,
 } from './queries.js';
 
 // --- Settings mapping ---
@@ -389,3 +405,208 @@ export const updateAuthor = async (
 		await connection.query(updateAuthorQuery, [data.text, data.date, data.seoDescription, data.seoKeywords]);
 	});
 };
+
+// --- Thing CRUD ---
+
+export interface CmsThingNote {
+	id: number;
+	text: string;
+}
+
+export interface CmsThing {
+	id: number;
+	title: string;
+	text: string;
+	categoryId: number;
+	statusId: number;
+	startDate: string | null;
+	finishDate: string;
+	firstLines: string | null;
+	firstLinesAutoGenerating: boolean;
+	excludeFromDaily: boolean;
+	notes: CmsThingNote[];
+	seoDescription: string | null;
+	seoKeywords: string | null;
+	info: string | null;
+}
+
+export const getThingStatuses = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(thingStatusesQuery);
+		return rows.map((row) => ({ id: row.id as number, title: row.title as string }));
+	});
+
+export const getThingCategories = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(thingCategoriesQuery);
+		return rows.map((row) => ({ id: row.id as number, title: row.title as string }));
+	});
+
+export const getCmsThing = async (mysql: MySQLPromisePool, thingId: number): Promise<CmsThing | null> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(cmsThingByIdQuery, [thingId]);
+
+		if (rows.length === 0) {
+			return null;
+		}
+
+		const row = rows[0];
+		const [noteRows] = await connection.query<MySQLRowDataPacket[]>(thingNotesQuery, [thingId]);
+
+		return {
+			id: row.id as number,
+			title: row.title as string,
+			text: row.text as string,
+			categoryId: row.categoryId as number,
+			statusId: row.statusId as number,
+			startDate: (row.startDate as string) ?? null,
+			finishDate: row.finishDate as string,
+			firstLines: (row.firstLines as string) ?? null,
+			firstLinesAutoGenerating: Boolean(row.firstLinesAutoGenerating),
+			excludeFromDaily: Boolean(row.excludeFromDaily),
+			notes: noteRows.map((n) => ({ id: n.id as number, text: n.text as string })),
+			seoDescription: (row.seoDescription as string) ?? null,
+			seoKeywords: (row.seoKeywords as string) ?? null,
+			info: (row.info as string) ?? null,
+		};
+	});
+
+export const createThing = async (
+	mysql: MySQLPromisePool,
+	data: {
+		title: string; text: string; categoryId: number; statusId: number;
+		startDate: string | null; finishDate: string;
+		firstLines: string | null; firstLinesAutoGenerating: boolean; excludeFromDaily: boolean;
+		notes: { text: string }[];
+		seoDescription: string | null; seoKeywords: string | null; info: string | null;
+	},
+): Promise<number> =>
+	withConnection(mysql, async (connection) => {
+		await connection.beginTransaction();
+		try {
+			const [result] = await connection.query<MySQLResultSetHeader>(createThingQuery, [
+				data.title, data.text, data.categoryId, data.statusId,
+				data.startDate, data.finishDate,
+				data.firstLines, data.firstLinesAutoGenerating ? 1 : 0, data.excludeFromDaily ? 1 : 0,
+			]);
+			const thingId = result.insertId;
+
+			if (data.seoDescription || data.seoKeywords) {
+				await connection.query(upsertThingSeoQuery, [thingId, data.seoDescription, data.seoKeywords]);
+			}
+
+			if (data.info) {
+				await connection.query(upsertThingInfoQuery, [thingId, data.info]);
+			}
+
+			for (let i = 0; i < data.notes.length; i++) {
+				await connection.query(insertThingNoteQuery, [thingId, data.notes[i].text, i + 1]);
+			}
+
+			await connection.commit();
+			return thingId;
+		} catch (error) {
+			await connection.rollback();
+			throw error;
+		}
+	});
+
+export const updateThing = async (
+	mysql: MySQLPromisePool,
+	thingId: number,
+	data: {
+		title?: string; text?: string; categoryId?: number; statusId?: number;
+		startDate?: string | null; finishDate?: string;
+		firstLines?: string | null; firstLinesAutoGenerating?: boolean; excludeFromDaily?: boolean;
+		notes?: { id?: number; text: string }[];
+		seoDescription?: string | null; seoKeywords?: string | null; info?: string | null;
+	},
+	current: CmsThing,
+): Promise<void> =>
+	withConnection(mysql, async (connection) => {
+		await connection.beginTransaction();
+		try {
+			await connection.query(updateThingQuery, [
+				data.title ?? current.title,
+				data.text ?? current.text,
+				data.categoryId ?? current.categoryId,
+				data.statusId ?? current.statusId,
+				data.startDate !== undefined ? data.startDate : current.startDate,
+				data.finishDate ?? current.finishDate,
+				data.firstLines !== undefined ? data.firstLines : current.firstLines,
+				(data.firstLinesAutoGenerating ?? current.firstLinesAutoGenerating) ? 1 : 0,
+				(data.excludeFromDaily ?? current.excludeFromDaily) ? 1 : 0,
+				thingId,
+			]);
+
+			// SEO upsert/delete
+			if (data.seoDescription !== undefined || data.seoKeywords !== undefined) {
+				const desc = data.seoDescription !== undefined ? data.seoDescription : current.seoDescription;
+				const kw = data.seoKeywords !== undefined ? data.seoKeywords : current.seoKeywords;
+
+				if (desc || kw) {
+					await connection.query(upsertThingSeoQuery, [thingId, desc, kw]);
+				} else {
+					await connection.query(deleteThingSeoQuery, [thingId]);
+				}
+			}
+
+			// Info upsert/delete
+			if (data.info !== undefined) {
+				if (data.info) {
+					await connection.query(upsertThingInfoQuery, [thingId, data.info]);
+				} else {
+					await connection.query(deleteThingInfoQuery, [thingId]);
+				}
+			}
+
+			// Notes sync (array position = order)
+			if (data.notes !== undefined) {
+				const keepIds: number[] = [];
+
+				for (let i = 0; i < data.notes.length; i++) {
+					const note = data.notes[i];
+
+					if (note.id) {
+						await connection.query(updateThingNoteQuery, [note.text, i + 1, note.id, thingId]);
+						keepIds.push(note.id);
+					} else {
+						await connection.query(insertThingNoteQuery, [thingId, note.text, i + 1]);
+					}
+				}
+
+				if (keepIds.length > 0) {
+					await connection.query(deleteThingNotesExceptQuery, [thingId, keepIds]);
+				} else {
+					await connection.query(deleteAllThingNotesQuery, [thingId]);
+				}
+			}
+
+			await connection.commit();
+		} catch (error) {
+			await connection.rollback();
+			throw error;
+		}
+	});
+
+export const deleteThing = async (mysql: MySQLPromisePool, thingId: number): Promise<void> => {
+	await withConnection(mysql, async (connection) => {
+		await connection.beginTransaction();
+		try {
+			await connection.query(deleteAllThingNotesQuery, [thingId]);
+			await connection.query(deleteThingSeoQuery, [thingId]);
+			await connection.query(deleteThingInfoQuery, [thingId]);
+			await connection.query(deleteThingQuery, [thingId]);
+			await connection.commit();
+		} catch (error) {
+			await connection.rollback();
+			throw error;
+		}
+	});
+};
+
+export const getThingInSectionsCount = async (mysql: MySQLPromisePool, thingId: number): Promise<number> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(thingInSectionsCountQuery, [thingId]);
+		return rows[0].cnt as number;
+	});

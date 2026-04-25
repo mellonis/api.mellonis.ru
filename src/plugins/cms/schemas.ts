@@ -121,6 +121,89 @@ export const updateAuthorRequest = z.object({
 	seoKeywords: z.string().nullable().default(null),
 });
 
+// --- Thing CRUD ---
+
+const thingNoteItem = z.object({
+	id: z.number().int().optional(),
+	text: z.string().min(1),
+});
+
+// Partial date: YYYY-00-00 (year), YYYY-MM-00 (year-month), YYYY-MM-DD (full)
+// YYYY-00-DD is invalid (month=0 with day≠0)
+const partialDateRegex = /^\d{4}-(00-00|(0[1-9]|1[0-2])-(00|0[1-9]|[12]\d|3[01]))$/;
+
+const isValidPartialDate = (value: string): boolean => {
+	if (!partialDateRegex.test(value)) {
+		return false;
+	}
+
+	const [, mm, dd] = value.split('-');
+
+	// Partial dates (with 00) are valid by format alone
+	if (mm === '00' || dd === '00') {
+		return true;
+	}
+
+	// Full dates: verify the day is valid for the month
+	const date = new Date(value);
+	return date.getMonth() + 1 === Number(mm) && date.getDate() === Number(dd);
+};
+
+const partialDate = z.string().refine(isValidPartialDate, { message: 'Invalid date' });
+
+export const cmsThingResponse = z.object({
+	id: z.number().int(),
+	title: z.string(),
+	text: z.string(),
+	categoryId: z.number().int(),
+	statusId: z.number().int(),
+	startDate: z.string().nullable(),
+	finishDate: z.string(),
+	firstLines: z.string().nullable(),
+	firstLinesAutoGenerating: z.boolean(),
+	excludeFromDaily: z.boolean(),
+	notes: z.array(z.object({ id: z.number().int(), text: z.string() })),
+	seoDescription: z.string().nullable(),
+	seoKeywords: z.string().nullable(),
+	info: z.string().nullable(),
+});
+
+export const thingIdParam = z.object({
+	thingId: z.coerce.number().int().positive(),
+});
+
+export const createThingRequest = z.object({
+	title: z.string().default('.'),
+	text: z.string().min(1),
+	categoryId: z.number().int().min(1).max(4),
+	statusId: z.number().int().min(1).max(4).default(1),
+	startDate: partialDate.nullable().default(null),
+	finishDate: partialDate,
+	firstLines: z.string().nullable().default(null),
+	firstLinesAutoGenerating: z.boolean().default(true),
+	excludeFromDaily: z.boolean().default(false),
+	notes: z.array(thingNoteItem).default([]),
+	seoDescription: z.string().nullable().default(null),
+	seoKeywords: z.string().nullable().default(null),
+	info: z.string().nullable().default(null),
+});
+
+export const updateThingRequest = z.object({
+	title: z.string().optional(),
+	text: z.string().min(1).optional(),
+	categoryId: z.number().int().min(1).max(4).optional(),
+	statusId: z.number().int().min(1).max(4).optional(),
+	startDate: partialDate.nullable().optional(),
+	finishDate: partialDate.optional(),
+	firstLines: z.string().nullable().optional(),
+	firstLinesAutoGenerating: z.boolean().optional(),
+	excludeFromDaily: z.boolean().optional(),
+	notes: z.array(thingNoteItem).optional(),
+	seoDescription: z.string().nullable().optional(),
+	seoKeywords: z.string().nullable().optional(),
+	info: z.string().nullable().optional(),
+});
+
 // --- Inferred types ---
 
 export type SectionIdParam = z.infer<typeof sectionIdParam>;
@@ -131,3 +214,6 @@ export type ThingInSectionParams = z.infer<typeof thingInSectionParams>;
 export type AddThingRequest = z.infer<typeof addThingRequest>;
 export type ReorderThingsRequest = z.infer<typeof reorderThingsRequest>;
 export type UpdateAuthorRequest = z.infer<typeof updateAuthorRequest>;
+export type ThingIdParam = z.infer<typeof thingIdParam>;
+export type CreateThingRequest = z.infer<typeof createThingRequest>;
+export type UpdateThingRequest = z.infer<typeof updateThingRequest>;

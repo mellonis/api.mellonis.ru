@@ -55,19 +55,47 @@ See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port ov
 Fastify app using a plugin-based structure under `src/plugins/`:
 
 - **`database/`** — registers the MySQL connection pool on the Fastify instance via `@fastify/mysql`
-- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Sends `ADMIN_NOTIFY_EMAIL` on new registration. Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`, `issueTokens.ts`. Sub-directory `passkey/` provides WebAuthn passkey routes (`/auth/passkey/*` for registration/login, `/auth/passkeys` for listing/deleting). RP ID is configurable via `WEBAUTHN_RP_ID` env var
-- **`authNotifier/`** — `fastify-plugin` that decorates `fastify.authNotifier` with an `AuthNotifier` implementation. In production (`NODE_ENV=production`): `EmailAuthNotifier` sends via SMTP. Otherwise: `ConsoleAuthNotifier` logs keys to pino (for local dev/testing without SMTP).
+- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins
+  - `authRoutes.ts` — routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Sends `ADMIN_NOTIFY_EMAIL` on new registration
+  - Pure utilities: `password.ts`, `jwt.ts`, `rights.ts`, `issueTokens.ts`
+  - `passkey/` — WebAuthn passkey routes (`/auth/passkey/*` for registration/login, `/auth/passkeys` for listing/deleting). RP ID configurable via `WEBAUTHN_RP_ID` env var
+- **`authNotifier/`** — `fastify-plugin` that decorates `fastify.authNotifier` with an `AuthNotifier` implementation
+  - Production (`NODE_ENV=production`): `EmailAuthNotifier` sends via SMTP
+  - Dev: `ConsoleAuthNotifier` logs keys to pino
 - **`swagger/`** — mounts OpenAPI docs at `/docs` via `@fastify/swagger` + `@fastify/swagger-ui`
 - **`sections/`** — routes prefixed `/sections`
 - **`thingsOfTheDay/`** — routes prefixed `/things-of-the-day`
 - **`users/`** — routes prefixed `/users` (change password, delete account). Sends `ADMIN_NOTIFY_EMAIL` on account deletion
-- **`votes/`** — routes prefixed `/things` for voting (`GET/PUT /:thingId/vote`). Requires auth + `canVote` right. `PUT` with `vote: 0` removes the vote. All mutations return updated `{ plus, minus }` counts. Sends email notification to `ADMIN_NOTIFY_EMAIL` on every vote action including removal (fire-and-forget, includes thing title)
-- **`author/`** — routes prefixed `/author`. `GET /` returns author biography text, date, and optional SEO fields (`seoDescription`, `seoKeywords`) sourced from `news` table (id=1). No auth required
-- **`cms/`** — routes prefixed `/cms`. Two-layer auth: all routes require `verifyJwt` + editor role (`isEditor`); mutations additionally require `canEditContent` right (bit 12). Split into sub-plugins: `authorRoutes.ts` (GET + PUT `/cms/author` for about page editing), `sectionRoutes.ts` (section types, section statuses, sections CRUD + reorder), `sectionThingRoutes.ts` (`GET /things` lists all things for the picker + things within sections CRUD + reorder). Sections have `statusId` (1=Preparing, 2=Published, 3=Editing, 4=Withdrawn); public API filters `WHERE section_status_id IN (2, 3)`. Reorder endpoints accept plain array body `[id1, id2, ...]`. Shared hook in `hooks.ts`. Section settings map between API format (`{ showAll, reverseOrder }`) and DB format (`{ show_all, things_order }`); stored as `NULL` when all defaults. Reordering things uses two-phase UPDATE with high offset to avoid unique constraint conflicts on `thing_position_in_section`. DELETE section cascades thing_identifiers but refuses if external redirects (`r_redirect_thing_identifier_id`) point into the section
+- **`votes/`** — routes prefixed `/things` for voting (`GET/PUT /:thingId/vote`)
+  - Requires auth + `canVote` right. `PUT` with `vote: 0` removes the vote
+  - Returns updated `{ plus, minus }` counts
+  - Sends `ADMIN_NOTIFY_EMAIL` on every vote action including removal (fire-and-forget, includes thing title)
+- **`author/`** — routes prefixed `/author`. `GET /` returns author biography text, date, and optional SEO fields. Sourced from `news` table (id=1). No auth required
+- **`cms/`** — routes prefixed `/cms`. Two-layer auth: all routes require `verifyJwt` + editor role (`isEditor`); mutations require `canEditContent` right (bit 12). Shared hook in `hooks.ts`. Sub-plugins:
+  - `authorRoutes.ts` — GET + PUT `/cms/author` for about page editing
+  - `sectionRoutes.ts` — section types, section statuses, sections CRUD + reorder
+  - `sectionThingRoutes.ts` — `GET /things` lists all things for the picker + things within sections CRUD + reorder
+  - `thingRoutes.ts` — thing CRUD: GET/POST/PUT/DELETE `/cms/things/:thingId` with notes, SEO, info sync + thing statuses/categories reference data
+  - Sections: `statusId` (1=Preparing, 2=Published, 3=Editing, 4=Withdrawn); public API filters `WHERE section_status_id IN (2, 3)`
+  - Reorder endpoints accept plain array body `[id1, id2, ...]`
+  - Section settings: API `{ showAll, reverseOrder }` ↔ DB `{ show_all, things_order }`; stored as `NULL` when all defaults
+  - Reordering things: two-phase UPDATE with high offset to avoid unique constraint conflicts
+  - DELETE section: cascades thing_identifiers, refuses if external redirects point in
+  - DELETE thing: refuses if thing is in any section
 
 Each route plugin is split into: `*.ts` (handler), `schemas.ts`, `queries.ts`, `databaseHelpers.ts`.
 
-Shared utilities live in `src/lib/`: `schemas.ts` (Zod schemas), `queries.ts` (SQL fragments), `mappers.ts` (row mappers), `databaseHelpers.ts` (`withConnection`), `email.ts` (SMTP transport), `emailTemplates.ts` (HTML renderers), `maskEmail.ts` (masks emails for logging). Domain-specific notifier implementations live in their own subdirectory — e.g., `lib/authNotifier/` contains `AuthNotifier.ts` (interface), `EmailAuthNotifier.ts`, `ConsoleAuthNotifier.ts`. Plugin schemas extend or re-export from `src/lib/schemas.ts`. Route handlers use `fastify.authNotifier` for auth-related notifications — never call `sendEmail` directly.
+Shared utilities in `src/lib/`:
+- `schemas.ts` — Zod schemas (shared `thingSchema`, `errorResponse`)
+- `queries.ts` — SQL fragments (thing fields, user vote field)
+- `mappers.ts` — row mappers (`mapThingBaseRow`, `splitLines`, `parseJSON`, `thingDisplayTitle`)
+- `databaseHelpers.ts` — `withConnection` (pool acquire/release)
+- `email.ts` — SMTP transport via nodemailer
+- `emailTemplates.ts` — email templates (auth + admin notifications: `thingVotedEmail`, `accountRegisteredEmail`, `accountDeletedEmail`)
+- `maskEmail.ts` — masks emails for logging
+- `authNotifier/` — `AuthNotifier` interface, `EmailAuthNotifier` (production), `ConsoleAuthNotifier` (dev)
+
+Plugin schemas extend or re-export from `src/lib/schemas.ts`. Auth notifications use `fastify.authNotifier`; admin notifications use `sendEmail` directly (fire-and-forget).
 
 Validation and serialization use `fastify-type-provider-zod`. All Fastify route schemas reference Zod objects.
 
