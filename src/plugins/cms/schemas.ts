@@ -105,6 +105,22 @@ export const addThingRequest = z.object({
 
 export const reorderThingsRequest = z.array(z.number().int().positive());
 
+// --- Author ---
+
+export const cmsAuthorResponse = z.object({
+	text: z.string(),
+	date: z.string(),
+	seoDescription: z.optional(z.string()),
+	seoKeywords: z.optional(z.string()),
+});
+
+export const updateAuthorRequest = z.object({
+	text: z.string().min(1),
+	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+	seoDescription: z.string().nullable().default(null),
+	seoKeywords: z.string().nullable().default(null),
+});
+
 // --- Inferred types ---
 
 export type SectionIdParam = z.infer<typeof sectionIdParam>;
@@ -114,3 +130,4 @@ export type ReorderSectionsRequest = z.infer<typeof reorderSectionsRequest>;
 export type ThingInSectionParams = z.infer<typeof thingInSectionParams>;
 export type AddThingRequest = z.infer<typeof addThingRequest>;
 export type ReorderThingsRequest = z.infer<typeof reorderThingsRequest>;
+export type UpdateAuthorRequest = z.infer<typeof updateAuthorRequest>;

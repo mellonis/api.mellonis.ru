@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { authorRoutes } from './authorRoutes.js';
 import { sectionRoutes } from './sectionRoutes.js';
 import { sectionThingRoutes } from './sectionThingRoutes.js';
 
@@ -14,6 +15,7 @@ export async function cmsPlugin(fastify: FastifyInstance) {
 	fastify.addHook('onRequest', fastify.verifyJwt);
 	fastify.addHook('onRequest', requireEditorRole);
 
+	fastify.register(authorRoutes);
 	fastify.register(sectionRoutes);
 	fastify.register(sectionThingRoutes);
 
