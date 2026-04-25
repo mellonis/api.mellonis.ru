@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { errorResponse } from '../../lib/schemas.js';
+import { sendEmail } from '../../lib/email.js';
+import { accountDeletedEmail } from '../../lib/emailTemplates.js';
 import { checkPassword, hashPassword } from '../auth/password.js';
 import { deleteAllUserRefreshTokens } from '../auth/databaseHelpers.js';
 import { getUserCredentials, updatePassword, deleteUser } from './databaseHelpers.js';
@@ -115,6 +117,15 @@ export async function usersPlugin(fastify: FastifyInstance) {
 				await deleteUser(fastify.mysql, id);
 
 				request.log.info({ login: user.login, userId: id }, 'Account deleted');
+
+				const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
+
+				if (adminEmail) {
+					sendEmail(adminEmail, accountDeletedEmail(user.login)).catch((err) => {
+						request.log.warn(err, 'Admin account deletion notification failed');
+					});
+				}
+
 				return reply.code(204).send();
 			} catch (error) {
 				request.log.error(error);

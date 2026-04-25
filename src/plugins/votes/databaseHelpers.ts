@@ -1,6 +1,7 @@
 import type { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
 import { withConnection } from '../../lib/databaseHelpers.js';
-import { upsertVoteQuery, deleteVoteQuery, voteCountsQuery } from './queries.js';
+import { thingDisplayTitle } from '../../lib/mappers.js';
+import { upsertVoteQuery, deleteVoteQuery, voteCountsQuery, thingTitleQuery } from './queries.js';
 
 export const upsertVote = async (mysql: MySQLPromisePool, thingId: number, userId: number, vote: number): Promise<void> => {
 	await withConnection(mysql, async (connection) => {
@@ -23,4 +24,11 @@ export const getVoteCounts = async (mysql: MySQLPromisePool, thingId: number): P
 	withConnection(mysql, async (connection) => {
 		const [rows] = await connection.query<MySQLRowDataPacket[]>(voteCountsQuery, [thingId]);
 		return { plus: rows[0].plus as number, minus: rows[0].minus as number };
+	});
+
+export const getThingTitle = async (mysql: MySQLPromisePool, thingId: number): Promise<string> =>
+	withConnection(mysql, async (connection) => {
+		const [rows] = await connection.query<MySQLRowDataPacket[]>(thingTitleQuery, [thingId]);
+		const row = rows[0];
+		return thingDisplayTitle(row?.title as string | null ?? null, row?.firstLines as string | null ?? null, thingId);
 	});
