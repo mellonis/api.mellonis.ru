@@ -19,6 +19,18 @@ export const parseJSON = (value: string | null): unknown => {
 	}
 };
 
+export const thingDisplayTitle = (title: string | null, firstLines: string | null, id: number): string => {
+	if (title) {
+		return title;
+	}
+
+	if (firstLines) {
+		return `«${firstLines.split('\n')[0]}…»`;
+	}
+
+	return `#${id}`;
+};
+
 export const mapThingBaseRow = (row: MySQLRowDataPacket) => ({
 	id: row.id as number,
 	categoryId: row.categoryId,

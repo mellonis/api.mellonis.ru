@@ -2,6 +2,8 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { errorResponse } from '../../lib/schemas.js';
 import { maskEmail } from '../../lib/maskEmail.js';
+import { sendEmail } from '../../lib/email.js';
+import { accountRegisteredEmail } from '../../lib/emailTemplates.js';
 import { checkPassword, hashPassword, needsRehash } from './password.js';
 import { hashRefreshToken } from './jwt.js';
 import {
@@ -203,7 +205,15 @@ export async function authRoutesPlugin(fastify: FastifyInstance) {
 					fastify.log.error({ login, email: maskEmail(email), err: notifierError }, 'Failed to send activation email');
 				}
 
-				return reply.code(201).send({ message: 'Registration successful. Check your email to activate your account.' });
+				const adminEmail = process.env.ADMIN_NOTIFY_EMAIL;
+
+					if (adminEmail) {
+						sendEmail(adminEmail, accountRegisteredEmail(login)).catch((err) => {
+							request.log.warn(err, 'Admin registration notification failed');
+						});
+					}
+
+					return reply.code(201).send({ message: 'Registration successful. Check your email to activate your account.' });
 			} catch (error) {
 				request.log.error(error);
 				return reply.code(500).send({ error: 'Internal server error' });

@@ -51,6 +51,25 @@ padding:12px 30px;border-radius:5px;text-decoration:none;font-size:14px;">
  просто проигнорируйте это письмо.</p>`),
 });
 
+export const thingVotedEmail = (voterLogin: string, thingTitle: string, vote: number): EmailMessage => ({
+	subject: vote === 0
+		? `Голос снят: ${voterLogin}`
+		: `Голос ${vote > 0 ? '↑' : '↓'} от ${voterLogin}`,
+	html: vote === 0
+		? `<p><strong>${voterLogin}</strong> снял(а) голос: ${thingTitle}</p>`
+		: `<p><strong>${voterLogin}</strong> проголосовал(а) ${vote > 0 ? 'за' : 'против'}: ${thingTitle}</p>`,
+});
+
+export const accountRegisteredEmail = (login: string): EmailMessage => ({
+	subject: `Регистрация: ${login}`,
+	html: `<p>Новый пользователь: <strong>${login}</strong></p>`,
+});
+
+export const accountDeletedEmail = (login: string): EmailMessage => ({
+	subject: `Удаление аккаунта: ${login}`,
+	html: `<p>Пользователь <strong>${login}</strong> удалил аккаунт.</p>`,
+});
+
 export const passwordChangedEmail = (siteOrigin: string, login: string, resetHref: string): EmailMessage => ({
 	subject: 'Пароль изменён',
 	html: layout(siteOrigin, login, `<p style="color:#333;font-size:14px;">Пароль для вашего

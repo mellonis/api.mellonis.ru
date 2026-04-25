@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { errorResponse } from '../../lib/schemas.js';
 import { authErrorResponse } from '../auth/schemas.js';
-import { upsertVote, deleteVote, getVoteCounts } from './databaseHelpers.js';
+import { sendEmail } from '../../lib/email.js';
+import { thingVotedEmail } from '../../lib/emailTemplates.js';
+import { upsertVote, deleteVote, getVoteCounts, getThingTitle } from './databaseHelpers.js';
 import {
 	voteParams,
 	voteRequest,
@@ -9,6 +11,8 @@ import {
 	type VoteParams,
 	type VoteRequest,
 } from './schemas.js';
+
+const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL;
 
 export async function votesPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: votes...');
@@ -34,6 +38,7 @@ export async function votesPlugin(fastify: FastifyInstance) {
 				const { thingId } = request.params;
 				const { vote } = request.body;
 				const userId = request.user!.sub;
+				const login = request.user!.login;
 
 				if (vote === 0) {
 					await deleteVote(fastify.mysql, thingId, userId);
@@ -41,6 +46,14 @@ export async function votesPlugin(fastify: FastifyInstance) {
 				} else {
 					await upsertVote(fastify.mysql, thingId, userId, vote);
 					request.log.info({ thingId, userId, vote }, 'Vote recorded');
+				}
+
+				if (ADMIN_NOTIFY_EMAIL) {
+					getThingTitle(fastify.mysql, thingId).then((title) => {
+						sendEmail(ADMIN_NOTIFY_EMAIL, thingVotedEmail(login, title, vote));
+					}).catch((err) => {
+						request.log.warn(err, 'Vote notification email failed');
+					});
 				}
 
 				return await getVoteCounts(fastify.mysql, thingId);

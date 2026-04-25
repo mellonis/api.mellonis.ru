@@ -9,6 +9,10 @@ export const deleteVoteQuery = `
 	WHERE r_thing_id = ? AND r_user_id = ?
 `;
 
+export const thingTitleQuery = `
+	SELECT title, first_lines AS firstLines FROM thing WHERE id = ?
+`;
+
 export const voteCountsQuery = `
 	SELECT
 		COUNT(CASE WHEN vote > 0 THEN 1 END) AS plus,

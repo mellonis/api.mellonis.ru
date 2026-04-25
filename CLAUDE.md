@@ -43,6 +43,7 @@ SMTP_FROM_NAME=Система оповещений        # required, display na
 SMTP_FROM_ADDRESS=notifier@mellonis.ru   # required, email address for From header (no fallback to SMTP_LOGIN — would leak credentials)
 ALLOWED_ORIGINS=https://poetry.mellonis.ru,https://poetry-old2.mellonis.ru  # required, comma-separated whitelist of client origins (CORS + email links)
 WEBAUTHN_RP_ID=mellonis.ru       # optional, WebAuthn Relying Party ID (default: mellonis.ru, use "localhost" for local dev)
+ADMIN_NOTIFY_EMAIL=admin@mellonis.ru  # optional, receives notifications on votes, registrations, account deletions
 ```
 
 See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). `CONNECTION_STRING`, `JWT_SECRET`, and `ALLOWED_ORIGINS` are validated on startup. SMTP vars are required only in production (`NODE_ENV=production`); in dev mode, notifications are logged to the console instead.
@@ -54,13 +55,13 @@ See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port ov
 Fastify app using a plugin-based structure under `src/plugins/`:
 
 - **`database/`** — registers the MySQL connection pool on the Fastify instance via `@fastify/mysql`
-- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`, `issueTokens.ts`. Sub-directory `passkey/` provides WebAuthn passkey routes (`/auth/passkey/*` for registration/login, `/auth/passkeys` for listing/deleting). RP ID is configurable via `WEBAUTHN_RP_ID` env var
+- **`auth/`** — `auth.ts` is a `fastify-plugin` decorator (`verifyJwt`, `requireRight`) visible to all plugins; `authRoutes.ts` provides routes prefixed `/auth` (register, activate, login, refresh, logout, password reset). Sends `ADMIN_NOTIFY_EMAIL` on new registration. Also contains pure utilities: `password.ts`, `jwt.ts`, `rights.ts`, `issueTokens.ts`. Sub-directory `passkey/` provides WebAuthn passkey routes (`/auth/passkey/*` for registration/login, `/auth/passkeys` for listing/deleting). RP ID is configurable via `WEBAUTHN_RP_ID` env var
 - **`authNotifier/`** — `fastify-plugin` that decorates `fastify.authNotifier` with an `AuthNotifier` implementation. In production (`NODE_ENV=production`): `EmailAuthNotifier` sends via SMTP. Otherwise: `ConsoleAuthNotifier` logs keys to pino (for local dev/testing without SMTP).
 - **`swagger/`** — mounts OpenAPI docs at `/docs` via `@fastify/swagger` + `@fastify/swagger-ui`
 - **`sections/`** — routes prefixed `/sections`
 - **`thingsOfTheDay/`** — routes prefixed `/things-of-the-day`
-- **`users/`** — routes prefixed `/users` (change password, delete account)
-- **`votes/`** — routes prefixed `/things` for voting (`GET/PUT /:thingId/vote`). Requires auth + `canVote` right. `PUT` with `vote: 0` removes the vote. All mutations return updated `{ plus, minus }` counts
+- **`users/`** — routes prefixed `/users` (change password, delete account). Sends `ADMIN_NOTIFY_EMAIL` on account deletion
+- **`votes/`** — routes prefixed `/things` for voting (`GET/PUT /:thingId/vote`). Requires auth + `canVote` right. `PUT` with `vote: 0` removes the vote. All mutations return updated `{ plus, minus }` counts. Sends email notification to `ADMIN_NOTIFY_EMAIL` on every vote action including removal (fire-and-forget, includes thing title)
 - **`author/`** — routes prefixed `/author`. `GET /` returns author biography text, date, and optional SEO fields (`seoDescription`, `seoKeywords`) sourced from `news` table (id=1). No auth required
 - **`cms/`** — routes prefixed `/cms`. Two-layer auth: all routes require `verifyJwt` + editor role (`isEditor`); mutations additionally require `canEditContent` right (bit 12). Split into sub-plugins: `authorRoutes.ts` (GET + PUT `/cms/author` for about page editing), `sectionRoutes.ts` (section types, section statuses, sections CRUD + reorder), `sectionThingRoutes.ts` (`GET /things` lists all things for the picker + things within sections CRUD + reorder). Sections have `statusId` (1=Preparing, 2=Published, 3=Editing, 4=Withdrawn); public API filters `WHERE section_status_id IN (2, 3)`. Reorder endpoints accept plain array body `[id1, id2, ...]`. Shared hook in `hooks.ts`. Section settings map between API format (`{ showAll, reverseOrder }`) and DB format (`{ show_all, things_order }`); stored as `NULL` when all defaults. Reordering things uses two-phase UPDATE with high offset to avoid unique constraint conflicts on `thing_position_in_section`. DELETE section cascades thing_identifiers but refuses if external redirects (`r_redirect_thing_identifier_id`) point into the section
 
