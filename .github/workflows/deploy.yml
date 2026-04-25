@@ -45,10 +45,12 @@ jobs:
   build-and-deploy:
     needs: [ ci, check-paths ]
     if: |
-      github.event_name == 'workflow_dispatch' ||
+      always() &&
+      needs.ci.result == 'success' &&
+      (github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.merged == true &&
       !contains(github.event.pull_request.labels.*.name, 'skip-deploy') &&
-      needs.check-paths.outputs.deployable == 'true')
+      needs.check-paths.outputs.deployable == 'true'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
