@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { authorRoutes } from './authorRoutes.js';
 import { sectionRoutes } from './sectionRoutes.js';
 import { sectionThingRoutes } from './sectionThingRoutes.js';
+import { thingRoutes } from './thingRoutes.js';
 
 const requireEditorRole = async (request: FastifyRequest, reply: FastifyReply) => {
 	if (!request.user?.isEditor) {
@@ -18,6 +19,7 @@ export async function cmsPlugin(fastify: FastifyInstance) {
 	fastify.register(authorRoutes);
 	fastify.register(sectionRoutes);
 	fastify.register(sectionThingRoutes);
+	fastify.register(thingRoutes);
 
 	fastify.log.info('[PLUGIN] Registered: cms');
 }

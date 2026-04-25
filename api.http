@@ -228,6 +228,69 @@ Authorization: Bearer {{login.response.body.accessToken}}
 
 [3, 1, 2]
 
+### ---- CMS: Author ----
+
+### Get author page content (requires editor role)
+GET {{host}}/cms/author
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Update author page content (requires editor + canEditContent)
+PUT {{host}}/cms/author
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "text": "Author bio text",
+  "date": "2026-04-25",
+  "seoDescription": null,
+  "seoKeywords": null
+}
+
+### ---- CMS: Thing CRUD ----
+
+### List thing statuses (requires editor role)
+GET {{host}}/cms/thing-statuses
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### List thing categories (requires editor role)
+GET {{host}}/cms/thing-categories
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### List all things (requires editor role)
+GET {{host}}/cms/things
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Get a thing for editing (requires editor role)
+GET {{host}}/cms/things/1
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Create a thing (requires editor + canEditContent)
+POST {{host}}/cms/things
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "text": "New poem text",
+  "categoryId": 1,
+  "finishDate": "2026-04-25"
+}
+
+### Update a thing (requires editor + canEditContent)
+PUT {{host}}/cms/things/1
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "title": "Updated Title",
+  "notes": [{"text": "A note"}],
+  "seoDescription": "Description",
+  "seoKeywords": "keywords"
+}
+
+### Delete a thing (requires editor + canEditContent, must not be in any section)
+DELETE {{host}}/cms/things/1
+Authorization: Bearer {{login.response.body.accessToken}}
+
 ### ---- Votes ----
 
 ### Cast or update a vote (requires auth + canVote)
