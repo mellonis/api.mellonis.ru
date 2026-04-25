@@ -65,7 +65,7 @@ export async function sectionThingRoutes(fastify: FastifyInstance) {
 			try {
 				const section = await getCmsSectionById(fastify.mysql, request.params.id);
 
-				if (!section || section.typeId === 0) {
+				if (!section) {
 					return reply.code(404).send({ error: 'Section not found' });
 				}
 
@@ -97,7 +97,7 @@ export async function sectionThingRoutes(fastify: FastifyInstance) {
 			try {
 				const section = await getCmsSectionById(fastify.mysql, request.params.id);
 
-				if (!section || section.typeId === 0) {
+				if (!section) {
 					return reply.code(404).send({ error: 'Section not found' });
 				}
 
@@ -166,7 +166,7 @@ export async function sectionThingRoutes(fastify: FastifyInstance) {
 			try {
 				const section = await getCmsSectionById(fastify.mysql, request.params.id);
 
-				if (!section || section.typeId === 0) {
+				if (!section) {
 					return reply.code(404).send({ error: 'Section not found' });
 				}
 

@@ -14,13 +14,13 @@ const sectionFields = `
 export const sectionsQuery = `
 	SELECT ${sectionFields}
 	FROM v_sections_info
-	WHERE section_type_id > 0;
+	WHERE section_status_id IN (2, 3);
 `;
 
 export const sectionByIdQuery = `
 	SELECT ${sectionFields}
 	FROM v_sections_info
-	WHERE section_type_id > 0
+	WHERE section_status_id IN (2, 3)
 		AND section_identifier = ?;
 `;
 

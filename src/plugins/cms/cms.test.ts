@@ -73,6 +73,7 @@ const sectionRow = {
 	annotationText: null,
 	annotationAuthor: null,
 	typeId: 1,
+	statusId: 2,
 	redirectSectionId: null,
 	settings: null,
 	order: 1,
