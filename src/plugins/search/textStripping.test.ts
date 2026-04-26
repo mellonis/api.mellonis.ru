@@ -49,16 +49,16 @@ describe('stripBBCode', () => {
 });
 
 describe('stripNoteMarkers', () => {
-	test('strips inline note markers', () => {
-		expect(stripNoteMarkers('text{note}rest')).toBe('textnoterest');
+	test('replaces inline note markers with space', () => {
+		expect(stripNoteMarkers('text{note}rest')).toBe('text rest');
 	});
 
-	test('strips out-of-text note markers', () => {
-		expect(stripNoteMarkers('text{!note}rest')).toBe('textnoterest');
+	test('replaces out-of-text note markers with space', () => {
+		expect(stripNoteMarkers('text{!note}rest')).toBe('text rest');
 	});
 
-	test('strips multiple markers', () => {
-		expect(stripNoteMarkers('{first} text{!second}')).toBe('first textsecond');
+	test('replaces multiple markers with spaces', () => {
+		expect(stripNoteMarkers('{first} text{!second}')).toBe('  text ');
 	});
 
 	test('leaves text without markers unchanged', () => {
@@ -68,7 +68,7 @@ describe('stripNoteMarkers', () => {
 
 describe('prepareText', () => {
 	test('strips both BBCode and note markers', () => {
-		expect(prepareText('[b]bold[/b]{!note}')).toBe('boldnote');
+		expect(prepareText('[b]bold[/b]{!note}')).toBe('bold ');
 	});
 });
 

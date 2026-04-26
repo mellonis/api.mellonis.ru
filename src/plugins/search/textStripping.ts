@@ -21,7 +21,16 @@ export const stripBBCode = (text: string): string =>
 	);
 
 export const stripNoteMarkers = (text: string): string =>
-	text.replace(/\{!?(.*?)}/g, '$1');
+	text.replace(/\{!?.*?}/g, ' ');
+
+export const extractInlineNotes = (text: string): string[] => {
+	const notes: string[] = [];
+	text.replace(/\{!?(.*?)}/g, (_, content: string) => {
+		if (content) notes.push(content);
+		return '';
+	});
+	return notes;
+};
 
 export const prepareText = (text: string): string =>
 	stripBBCode(stripNoteMarkers(text));
