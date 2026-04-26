@@ -39,7 +39,7 @@ const RP_NAME = 'Mellonis Poetry';
 const getAllowedOrigins = (): string[] =>
 	(process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 
-const getRpId = (): string => process.env.WEBAUTHN_RP_ID ?? 'mellonis.ru';
+const getRpId = (): string => process.env.WEBAUTHN_RP_ID ?? 'poetry.mellonis.ru';
 
 export async function passkeyRoutesPlugin(fastify: FastifyInstance) {
 	fastify.log.info('[PLUGIN] Registering: passkeyRoutes...');
