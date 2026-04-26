@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import { Meilisearch } from 'meilisearch';
+import { reindexAll } from './searchSync.js';
 
 declare module 'fastify' {
 	interface FastifyInstance {
@@ -34,4 +35,13 @@ export default fp(async (fastify: FastifyInstance) => {
 
 	fastify.decorate('meiliClient', client);
 	fastify.log.info({ url }, 'Meilisearch connected');
+
+	const { numberOfDocuments } = await index.getStats();
+
+	if (numberOfDocuments === 0) {
+		fastify.log.info('Search index is empty — reindexing all things');
+		reindexAll(client, fastify.mysql, fastify.log)
+			.then((count) => fastify.log.info({ count }, 'Initial reindex complete'))
+			.catch((err) => fastify.log.error(err, 'Initial reindex failed'));
+	}
 }, { name: 'search' });
