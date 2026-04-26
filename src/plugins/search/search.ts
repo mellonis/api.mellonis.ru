@@ -10,7 +10,7 @@ declare module 'fastify' {
 }
 
 const INDEX_NAME = 'things';
-const INDEX_VERSION = 3;
+const INDEX_VERSION = 4;
 
 export { INDEX_NAME as SEARCH_INDEX_NAME };
 
@@ -32,6 +32,10 @@ export default fp(async (fastify: FastifyInstance) => {
 	await index.updateSettings({
 		searchableAttributes: ['title', 'text', 'notes', 'audioTitles'],
 		filterableAttributes: ['categoryId', 'statusId'],
+		typoTolerance: {
+			minWordSizeForTypos: { oneTypo: 5, twoTypos: 9 },
+		},
+		rankingRules: ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness'],
 	});
 
 	fastify.decorate('meiliClient', client);
