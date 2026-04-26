@@ -126,7 +126,12 @@ bold "2. Things of the Day"
 check_json_array "GET /things-of-the-day" "/things-of-the-day"
 
 bold ""
-bold "3. Swagger docs"
+bold "3. Search"
+
+check "GET /search?q=test (no Meilisearch)" GET "/search?q=test" 503
+
+bold ""
+bold "4. Swagger docs"
 
 check "GET /docs" GET "/docs" 200
 

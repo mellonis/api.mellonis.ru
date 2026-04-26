@@ -3,6 +3,7 @@ import { authorRoutes } from './authorRoutes.js';
 import { sectionRoutes } from './sectionRoutes.js';
 import { sectionThingRoutes } from './sectionThingRoutes.js';
 import { thingRoutes } from './thingRoutes.js';
+import { searchCmsRoutes } from './searchCmsRoutes.js';
 
 const requireEditorRole = async (request: FastifyRequest, reply: FastifyReply) => {
 	if (!request.user?.isEditor) {
@@ -20,6 +21,7 @@ export async function cmsPlugin(fastify: FastifyInstance) {
 	fastify.register(sectionRoutes);
 	fastify.register(sectionThingRoutes);
 	fastify.register(thingRoutes);
+	fastify.register(searchCmsRoutes);
 
 	fastify.log.info('[PLUGIN] Registered: cms');
 }
