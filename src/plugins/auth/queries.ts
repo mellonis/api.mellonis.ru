@@ -37,7 +37,7 @@ export const updateLastLoginQuery = `
 
 export const insertUserQuery = `
 	INSERT INTO auth_user (r_group_id, rights, login, password_hash, email, \`key\`, key_created_at)
-	VALUES (3, 24, ?, ?, ?, ?, NOW())
+	VALUES (?, ?, ?, ?, ?, ?, NOW())
 `;
 
 export const updateUserRightsAndKeyQuery = `

@@ -12,33 +12,33 @@ import {
 describe('resolveRights', () => {
 	// Bits 3..10 rule: (!group) && user
 	it('canVote: false when neither side has bit 3', () => {
-		expect(resolveRights(0, 0)).toEqual({ canVote: false, canEditContent: false });
+		expect(resolveRights(0, 0)).toEqual({ canVote: false, canEditContent: false, canEditUsers: false });
 	});
 
 	it('canVote: true when user opts in (group has no bit 3)', () => {
-		expect(resolveRights(8, 0)).toEqual({ canVote: true, canEditContent: false });
+		expect(resolveRights(8, 0)).toEqual({ canVote: true, canEditContent: false, canEditUsers: false });
 	});
 
 	it('canVote: false when group blocks (group has bit 3, user does not)', () => {
-		expect(resolveRights(0, 8)).toEqual({ canVote: false, canEditContent: false });
+		expect(resolveRights(0, 8)).toEqual({ canVote: false, canEditContent: false, canEditUsers: false });
 	});
 
 	it('canVote: false when group blocks (both sides have bit 3)', () => {
-		expect(resolveRights(8, 8)).toEqual({ canVote: false, canEditContent: false });
+		expect(resolveRights(8, 8)).toEqual({ canVote: false, canEditContent: false, canEditUsers: false });
 	});
 
 	it('resolves default new user rights (24 = can_vote + can_comment)', () => {
-		expect(resolveRights(24, 0)).toEqual({ canVote: true, canEditContent: false });
+		expect(resolveRights(24, 0)).toEqual({ canVote: true, canEditContent: false, canEditUsers: false });
 	});
 
 	// Bits 11..15 rule: XOR (group default, user override)
-	it('canEditContent: true when group has bit 12 (editors group = 30720)', () => {
-		expect(resolveRights(24, 30720).canEditContent).toBe(true);
+	it('canEditContent: true when group has bit 12 (editors group = 14336)', () => {
+		expect(resolveRights(24, 14336).canEditContent).toBe(true);
 	});
 
 	it('canEditContent: false when user overrides group bit 12 off', () => {
 		// XOR: both have bit 12 → false
-		expect(resolveRights(24 | 4096, 30720).canEditContent).toBe(false);
+		expect(resolveRights(24 | 4096, 14336).canEditContent).toBe(false);
 	});
 
 	it('canEditContent: true when user overrides with bit 12 (group has no bit 12)', () => {
@@ -49,17 +49,31 @@ describe('resolveRights', () => {
 		expect(resolveRights(0, 0).canEditContent).toBe(false);
 	});
 
+	// canEditUsers (bit 14, XOR rule)
+	it('canEditUsers: true when group has bit 14 (admins group = 63488)', () => {
+		expect(resolveRights(24, 63488).canEditUsers).toBe(true);
+	});
+
+	it('canEditUsers: false for editors group (14336, no bit 14)', () => {
+		expect(resolveRights(24, 14336).canEditUsers).toBe(false);
+	});
+
+	it('canEditUsers: false when user overrides group bit 14 off', () => {
+		// XOR: both have bit 14 → false
+		expect(resolveRights(24 | 16384, 63488).canEditUsers).toBe(false);
+	});
+
 	// Banned override
 	it('zeros all rights when user is banned (bit 2)', () => {
-		expect(resolveRights(8 | 4, 0)).toEqual({ canVote: false, canEditContent: false });
+		expect(resolveRights(8 | 4, 0)).toEqual({ canVote: false, canEditContent: false, canEditUsers: false });
 	});
 
 	it('zeros all rights when group is banned (bit 2)', () => {
-		expect(resolveRights(8, 4)).toEqual({ canVote: false, canEditContent: false });
+		expect(resolveRights(8, 4)).toEqual({ canVote: false, canEditContent: false, canEditUsers: false });
 	});
 
 	it('zeros canEditContent when banned even if group has bit 12', () => {
-		expect(resolveRights(4, 30720).canEditContent).toBe(false);
+		expect(resolveRights(4, 14336).canEditContent).toBe(false);
 	});
 });
 

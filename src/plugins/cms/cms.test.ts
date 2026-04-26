@@ -33,12 +33,23 @@ function createMockMysql(...responses: Record<string, unknown>[][]): MySQLPromis
 	} as unknown as MySQLPromisePool;
 }
 
+const mockNotifier = {
+	sendActivation: vi.fn().mockResolvedValue(undefined),
+	sendPasswordReset: vi.fn().mockResolvedValue(undefined),
+	sendPasswordChanged: vi.fn().mockResolvedValue(undefined),
+	sendAdminActivation: vi.fn().mockResolvedValue(undefined),
+	sendAdminPasswordReset: vi.fn().mockResolvedValue(undefined),
+	sendAdminResendActivation: vi.fn().mockResolvedValue(undefined),
+};
+
 async function buildApp(mysql: MySQLPromisePool) {
 	const app = Fastify({ logger: false });
 
 	app.setValidatorCompiler(validatorCompiler);
 	app.setSerializerCompiler(serializerCompiler);
 	app.decorate('mysql', mysql);
+	app.decorate('authNotifier', mockNotifier);
+	app.decorate('resolveOrigin', () => 'https://test.example.com');
 	app.register(authPlugin);
 	app.register(cmsPlugin, { prefix: '/cms' });
 
@@ -52,7 +63,7 @@ const getEditorToken = async (canEditContent = true) =>
 		isAdmin: false,
 		isEditor: true,
 		tokenVersion: 0,
-		rights: { canVote: true, canEditContent },
+		rights: { canVote: true, canEditContent, canEditUsers: false },
 	}, secret);
 
 const getNonEditorToken = async () =>
@@ -62,7 +73,17 @@ const getNonEditorToken = async () =>
 		isAdmin: false,
 		isEditor: false,
 		tokenVersion: 0,
-		rights: { canVote: true, canEditContent: false },
+		rights: { canVote: true, canEditContent: false, canEditUsers: false },
+	}, secret);
+
+const getAdminToken = async (canEditUsers = true) =>
+	signAccessToken({
+		sub: 100,
+		login: 'admin',
+		isAdmin: true,
+		isEditor: true,
+		tokenVersion: 0,
+		rights: { canVote: true, canEditContent: true, canEditUsers },
 	}, secret);
 
 const sectionRow = {
@@ -329,5 +350,305 @@ describe('PUT /cms/sections/:id/things/reorder', () => {
 
 		expect(response.statusCode).toBe(400);
 		expect(response.json().error).toContain('must match');
+	});
+});
+
+// --- User management ---
+
+const userRow = {
+	id: 5,
+	login: 'testuser',
+	email: 'test@example.com',
+	groupId: 3,
+	groupTitle: 'users',
+	rights: 24,
+	lastLogin: null,
+};
+
+const groupRows = [
+	{ id: 0, title: 'guests', rights: 0 },
+	{ id: 1, title: 'admins', rights: 63488 },
+	{ id: 2, title: 'editors', rights: 14336 },
+	{ id: 3, title: 'users', rights: 0 },
+];
+
+describe('CMS user management auth', () => {
+	it('returns 403 for editor (not admin) on /cms/users', async () => {
+		const app = await buildApp(createMockMysql());
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(403);
+		expect(response.json().message).toBe('Admin access required');
+	});
+
+	it('returns 403 for admin without canEditUsers on /cms/users', async () => {
+		const app = await buildApp(createMockMysql());
+		const token = await getAdminToken(false);
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(403);
+		expect(response.json().message).toBe('Missing required right: canEditUsers');
+	});
+
+	it('allows admin with canEditUsers to list users', async () => {
+		const app = await buildApp(createMockMysql([userRow]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json()).toHaveLength(1);
+		expect(response.json()[0].login).toBe('testuser');
+	});
+});
+
+describe('GET /cms/users/:userId', () => {
+	it('returns 404 for non-existent user', async () => {
+		const app = await buildApp(createMockMysql([]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/users/999',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(404);
+	});
+
+	it('returns user by id', async () => {
+		const app = await buildApp(createMockMysql([userRow]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/users/5',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().id).toBe(5);
+		expect(response.json().isBanned).toBe(false);
+		expect(response.json().isEmailActivated).toBe(false);
+	});
+});
+
+describe('POST /cms/users', () => {
+	it('returns 409 for duplicate login or email', async () => {
+		// Responses: loginOrEmailExists returns a row
+		const app = await buildApp(createMockMysql([{ '1': 1 }]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { login: 'testuser', email: 'test@example.com', password: 'pass123', groupId: 3 },
+		});
+
+		expect(response.statusCode).toBe(409);
+	});
+
+	it('creates a user', async () => {
+		// Responses: loginOrEmailExists (empty), insertCmsUser, getUserById
+		const app = await buildApp(createMockMysql(
+			[],
+			[{ insertId: 50 }],
+			[{ ...userRow, id: 50 }],
+		));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { login: 'newuser', email: 'new@example.com', password: 'pass123', groupId: 3 },
+		});
+
+		expect(response.statusCode).toBe(201);
+		expect(response.json().id).toBe(50);
+		expect(mockNotifier.sendAdminActivation).toHaveBeenCalled();
+	});
+
+	it('rejects invalid login format', async () => {
+		const app = await buildApp(createMockMysql());
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { login: 'INVALID!', email: 'test@example.com', password: 'pass123', groupId: 3 },
+		});
+
+		expect(response.statusCode).toBe(400);
+	});
+});
+
+describe('PUT /cms/users/:userId', () => {
+	it('prevents self group change', async () => {
+		// Admin token has sub=100. Editing user 100.
+		// Responses: getUserById
+		const selfRow = { ...userRow, id: 100, login: 'admin', groupId: 1, groupTitle: 'admins' };
+		const app = await buildApp(createMockMysql([selfRow]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'PUT',
+			url: '/cms/users/100',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { groupId: 3 },
+		});
+
+		expect(response.statusCode).toBe(409);
+		expect(response.json().error).toBe('Cannot change own group');
+	});
+
+	it('prevents self ban', async () => {
+		const selfRow = { ...userRow, id: 100, login: 'admin', groupId: 1, groupTitle: 'admins' };
+		// Responses: getUserById, getGroups (for canEditUsers resolution)
+		const app = await buildApp(createMockMysql([selfRow], groupRows));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'PUT',
+			url: '/cms/users/100',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { rights: 24 | 4 }, // add banned bit
+		});
+
+		expect(response.statusCode).toBe(409);
+		expect(response.json().error).toBe('Cannot ban self');
+	});
+
+	it('updates another user', async () => {
+		// Responses: getUserById, getGroups, updateCmsUser, bumpTokenVersion, deleteRefreshTokens, getUserById (refetch)
+		const updatedRow = { ...userRow, groupId: 2, groupTitle: 'editors' };
+		const app = await buildApp(createMockMysql(
+			[userRow],
+			groupRows,
+			[], // update
+			[], // bump token
+			[], // delete tokens
+			[updatedRow],
+		));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'PUT',
+			url: '/cms/users/5',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { groupId: 2 },
+		});
+
+		expect(response.statusCode).toBe(200);
+	});
+});
+
+describe('DELETE /cms/users/:userId', () => {
+	it('prevents self deletion', async () => {
+		const app = await buildApp(createMockMysql());
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'DELETE',
+			url: '/cms/users/100',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(403);
+		expect(response.json().message).toBe('Cannot delete self');
+	});
+
+	it('returns 404 for non-existent user', async () => {
+		const app = await buildApp(createMockMysql([]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'DELETE',
+			url: '/cms/users/999',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(404);
+	});
+
+	it('deletes a user', async () => {
+		// Responses: getUserById, deleteCmsUser
+		const app = await buildApp(createMockMysql([userRow], []));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'DELETE',
+			url: '/cms/users/5',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(204);
+	});
+});
+
+describe('POST /cms/users/:userId/resend-activation', () => {
+	it('rejects for already activated user', async () => {
+		const activatedRow = { ...userRow, rights: 25 }; // bit 0 set = activated
+		const app = await buildApp(createMockMysql([activatedRow]));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users/5/resend-activation',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(409);
+		expect(response.json().error).toBe('User is already activated');
+	});
+
+	it('resends activation email', async () => {
+		// Responses: getUserById, updateUserRightsAndKey
+		const app = await buildApp(createMockMysql([userRow], []));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users/5/resend-activation',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(mockNotifier.sendAdminResendActivation).toHaveBeenCalled();
+	});
+});
+
+describe('POST /cms/users/:userId/reset-password', () => {
+	it('triggers password reset', async () => {
+		// Responses: getUserById, updateUserRightsAndKey
+		const app = await buildApp(createMockMysql([userRow], []));
+		const token = await getAdminToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/users/5/reset-password',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().message).toBe('Password reset email sent');
+		expect(mockNotifier.sendAdminPasswordReset).toHaveBeenCalled();
 	});
 });

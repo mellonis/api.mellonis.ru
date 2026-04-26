@@ -1,7 +1,14 @@
 import type { FastifyBaseLogger } from 'fastify';
 import type { AuthNotifier } from './AuthNotifier.js';
 import { sendEmail } from '../email.js';
-import { activationEmail, passwordChangedEmail, resetPasswordEmail } from '../emailTemplates.js';
+import {
+	activationEmail,
+	adminActivationEmail,
+	adminPasswordResetEmail,
+	adminResendActivationEmail,
+	passwordChangedEmail,
+	resetPasswordEmail,
+} from '../emailTemplates.js';
 import { maskEmail } from '../maskEmail.js';
 
 export class EmailAuthNotifier implements AuthNotifier {
@@ -27,5 +34,23 @@ export class EmailAuthNotifier implements AuthNotifier {
 		const resetHref = `${origin}/reset-password/`;
 		this.logger.info({ login, email: maskEmail(email), origin }, 'Sending password changed email');
 		await sendEmail(email, passwordChangedEmail(origin, login, resetHref));
+	}
+
+	async sendAdminActivation(email: string, login: string, key: string, origin: string): Promise<void> {
+		const href = `${origin}/activate/?key=${key}`;
+		this.logger.info({ login, email: maskEmail(email), origin }, 'Sending admin-created activation email');
+		await sendEmail(email, adminActivationEmail(origin, login, href));
+	}
+
+	async sendAdminPasswordReset(email: string, login: string, key: string, origin: string): Promise<void> {
+		const href = `${origin}/reset-password/?key=${key}`;
+		this.logger.info({ login, email: maskEmail(email), origin }, 'Sending admin password reset email');
+		await sendEmail(email, adminPasswordResetEmail(origin, login, href));
+	}
+
+	async sendAdminResendActivation(email: string, login: string, key: string, origin: string): Promise<void> {
+		const href = `${origin}/activate/?key=${key}`;
+		this.logger.info({ login, email: maskEmail(email), origin }, 'Sending admin resend activation email');
+		await sendEmail(email, adminResendActivationEmail(origin, login, href));
 	}
 }

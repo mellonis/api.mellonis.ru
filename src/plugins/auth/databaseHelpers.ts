@@ -129,17 +129,22 @@ const isKeyOlderThan = (key: string, ttlInSeconds: number): boolean => {
 const hashKey = (key: string): string =>
 	createHash('sha256').update(key).digest('hex');
 
+const DEFAULT_GROUP_ID = 3;
+const DEFAULT_USER_RIGHTS = 24; // canVote (bit 3) + canComment (bit 4)
+
 export const createUser = async (
 	mysql: MySQLPromisePool,
 	login: string,
 	passwordHash: string,
 	email: string,
 	key: string,
+	groupId: number = DEFAULT_GROUP_ID,
+	rights: number = DEFAULT_USER_RIGHTS,
 ): Promise<number> =>
 	withConnection(mysql, async (connection) => {
 		const [result] = await connection.query<MySQLResultSetHeader>(
 			insertUserQuery,
-			[login, passwordHash, email, hashKey(key)],
+			[groupId, rights, login, passwordHash, email, hashKey(key)],
 		);
 		return result.insertId;
 	});
