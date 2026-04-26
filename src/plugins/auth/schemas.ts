@@ -8,6 +8,7 @@ const loginSchema = z.string()
 export const resolvedRightsSchema = z.object({
 	canVote: z.boolean(),
 	canEditContent: z.boolean(),
+	canEditUsers: z.boolean(),
 });
 
 export const userInfoSchema = z.object({

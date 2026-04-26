@@ -20,4 +20,16 @@ export class ConsoleAuthNotifier implements AuthNotifier {
 	async sendPasswordChanged(email: string, login: string, origin: string): Promise<void> {
 		this.logger.info({ login, email: maskEmail(email), origin }, 'Sending password changed email');
 	}
+
+	async sendAdminActivation(email: string, login: string, key: string, origin: string): Promise<void> {
+		this.logger.info({ login, email: maskEmail(email), key, origin }, 'Sending admin-created activation email');
+	}
+
+	async sendAdminPasswordReset(email: string, login: string, key: string, origin: string): Promise<void> {
+		this.logger.info({ login, email: maskEmail(email), key, origin }, 'Sending admin password reset email');
+	}
+
+	async sendAdminResendActivation(email: string, login: string, key: string, origin: string): Promise<void> {
+		this.logger.info({ login, email: maskEmail(email), key, origin }, 'Sending admin resend activation email');
+	}
 }

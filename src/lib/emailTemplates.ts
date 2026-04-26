@@ -65,6 +65,44 @@ export const accountRegisteredEmail = (login: string): EmailMessage => ({
 	html: `<p>Новый пользователь: <strong>${login}</strong></p>`,
 });
 
+export const adminActivationEmail = (siteOrigin: string, login: string, href: string): EmailMessage => ({
+	subject: 'Для вас создан аккаунт',
+	html: layout(siteOrigin, login, `<p style="color:#333;font-size:14px;">Для вас создан аккаунт
+ на сайте. Для активации подтвердите ваш email.</p>
+<p style="text-align:center;margin:25px 0;">
+<a href="${href}" style="display:inline-block;background:#333;color:#fff;
+padding:12px 30px;border-radius:5px;text-decoration:none;font-size:14px;">
+Подтвердить email</a></p>
+<p style="color:#999;font-size:12px;">Или скопируйте ссылку:
+<a href="${href}" style="color:#666;">${href}</a></p>`),
+});
+
+export const adminPasswordResetEmail = (siteOrigin: string, login: string, href: string): EmailMessage => ({
+	subject: 'Сброс пароля',
+	html: layout(siteOrigin, login, `<p style="color:#333;font-size:14px;">Администратор запросил
+ сброс пароля для вашего аккаунта.</p>
+<p style="text-align:center;margin:25px 0;">
+<a href="${href}" style="display:inline-block;background:#333;color:#fff;
+padding:12px 30px;border-radius:5px;text-decoration:none;font-size:14px;">
+Сбросить пароль</a></p>
+<p style="color:#999;font-size:12px;">Или скопируйте ссылку:
+<a href="${href}" style="color:#666;">${href}</a></p>
+<p style="color:#999;font-size:12px;">Если вы не ожидали этого письма,
+ обратитесь к администратору.</p>`),
+});
+
+export const adminResendActivationEmail = (siteOrigin: string, login: string, href: string): EmailMessage => ({
+	subject: 'Подтверждение email',
+	html: layout(siteOrigin, login, `<p style="color:#333;font-size:14px;">Администратор повторно
+ отправил ссылку для активации вашего аккаунта.</p>
+<p style="text-align:center;margin:25px 0;">
+<a href="${href}" style="display:inline-block;background:#333;color:#fff;
+padding:12px 30px;border-radius:5px;text-decoration:none;font-size:14px;">
+Подтвердить email</a></p>
+<p style="color:#999;font-size:12px;">Или скопируйте ссылку:
+<a href="${href}" style="color:#666;">${href}</a></p>`),
+});
+
 export const accountDeletedEmail = (login: string): EmailMessage => ({
 	subject: `Удаление аккаунта: ${login}`,
 	html: `<p>Пользователь <strong>${login}</strong> удалил аккаунт.</p>`,

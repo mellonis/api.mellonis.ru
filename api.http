@@ -291,6 +291,54 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{host}}/cms/things/1
 Authorization: Bearer {{login.response.body.accessToken}}
 
+### ---- CMS: User Management ----
+
+### List auth groups (requires admin + canEditUsers)
+GET {{host}}/cms/groups
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### List all users (requires admin + canEditUsers)
+GET {{host}}/cms/users
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Get a user (requires admin + canEditUsers)
+GET {{host}}/cms/users/1
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Create a user (requires admin + canEditUsers, sends activation email)
+POST {{host}}/cms/users
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "login": "newuser",
+  "email": "new@example.com",
+  "password": "password123",
+  "groupId": 3
+}
+
+### Update a user (requires admin + canEditUsers)
+PUT {{host}}/cms/users/5
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.accessToken}}
+
+{
+  "groupId": 2,
+  "rights": 24
+}
+
+### Delete a user (requires admin + canEditUsers, cannot delete self)
+DELETE {{host}}/cms/users/5
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Resend activation email (requires admin + canEditUsers)
+POST {{host}}/cms/users/5/resend-activation
+Authorization: Bearer {{login.response.body.accessToken}}
+
+### Trigger password reset (requires admin + canEditUsers)
+POST {{host}}/cms/users/5/reset-password
+Authorization: Bearer {{login.response.body.accessToken}}
+
 ### ---- Search ----
 
 ### Search things (public)

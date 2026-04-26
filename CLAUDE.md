@@ -80,6 +80,7 @@ Fastify app using a plugin-based structure under `src/plugins/`:
   - `sectionThingRoutes.ts` — `GET /things` lists all things for the picker + things within sections CRUD + reorder
   - `thingRoutes.ts` — thing CRUD: GET/POST/PUT/DELETE `/cms/things/:thingId` with notes, SEO, info sync + thing statuses/categories reference data. Create/update/delete fire-and-forget sync to Meilisearch
   - `searchCmsRoutes.ts` — `POST /cms/search/reindex` for full reindex of all things
+  - `userRoutes.ts` — admin user management. Requires `isAdmin` + `canEditUsers` (bit 14) via `requireAdmin` + `requireCanEditUsers` hooks. Endpoints: `GET /cms/groups`, `GET/POST /cms/users`, `GET/PUT/DELETE /cms/users/:userId`, `POST /cms/users/:userId/resend-activation`, `POST /cms/users/:userId/reset-password`. Self-protection: cannot delete self, change own group, ban self, or remove own `canEditUsers`. On update: bumps `token_version` + deletes refresh tokens. Create sends admin-specific activation email
   - Sections: `statusId` (1=Preparing, 2=Published, 3=Editing, 4=Withdrawn); public API filters `WHERE section_status_id IN (2, 3)`
   - Reorder endpoints accept plain array body `[id1, id2, ...]`
   - Section settings: API `{ showAll, reverseOrder }` ↔ DB `{ show_all, things_order }`; stored as `NULL` when all defaults
@@ -95,7 +96,19 @@ Shared utilities in `src/lib/`:
 - `mappers.ts` — row mappers (`mapThingBaseRow`, `splitLines`, `parseJSON`, `thingDisplayTitle`)
 - `databaseHelpers.ts` — `withConnection` (pool acquire/release)
 - `email.ts` — SMTP transport via nodemailer
-- `emailTemplates.ts` — email templates (auth + admin notifications: `thingVotedEmail`, `accountRegisteredEmail`, `accountDeletedEmail`)
+- `emailTemplates.ts` — email templates:
+
+  | Template | Recipient | Trigger |
+  |----------|-----------|---------|
+  | `activationEmail` | user | self-registration |
+  | `resetPasswordEmail` | user | self-requested password reset |
+  | `passwordChangedEmail` | user | password changed |
+  | `adminActivationEmail` | user | admin created account |
+  | `adminPasswordResetEmail` | user | admin triggered password reset |
+  | `adminResendActivationEmail` | user | admin resent activation |
+  | `thingVotedEmail` | `ADMIN_NOTIFY_EMAIL` | vote cast/removed |
+  | `accountRegisteredEmail` | `ADMIN_NOTIFY_EMAIL` | new user registered |
+  | `accountDeletedEmail` | `ADMIN_NOTIFY_EMAIL` | user deleted account |
 - `maskEmail.ts` — masks emails for logging
 - `authNotifier/` — `AuthNotifier` interface, `EmailAuthNotifier` (production), `ConsoleAuthNotifier` (dev)
 
