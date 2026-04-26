@@ -22,6 +22,7 @@ import {
 	type UpdateThingRequest,
 } from './schemas.js';
 import { requireCanEditContent } from './hooks.js';
+import { syncThingToSearch, deleteThingFromSearch } from '../search/searchSync.js';
 
 export async function thingRoutes(fastify: FastifyInstance) {
 	fastify.get('/thing-statuses', {
@@ -114,6 +115,10 @@ export async function thingRoutes(fastify: FastifyInstance) {
 				const thing = await getCmsThing(fastify.mysql, id);
 
 				request.log.info({ thingId: id }, 'Thing created');
+				if (fastify.meiliClient) {
+					syncThingToSearch(fastify.meiliClient, fastify.mysql, id, request.log)
+						.catch((err) => request.log.error(err, 'Meilisearch sync failed'));
+				}
 				return reply.code(201).send(thing);
 			} catch (error) {
 				request.log.error(error);
@@ -149,6 +154,10 @@ export async function thingRoutes(fastify: FastifyInstance) {
 				const updated = await getCmsThing(fastify.mysql, request.params.thingId);
 
 				request.log.info({ thingId: request.params.thingId }, 'Thing updated');
+				if (fastify.meiliClient) {
+					syncThingToSearch(fastify.meiliClient, fastify.mysql, request.params.thingId, request.log)
+						.catch((err) => request.log.error(err, 'Meilisearch sync failed'));
+				}
 				return updated;
 			} catch (error) {
 				request.log.error(error);
@@ -188,6 +197,10 @@ export async function thingRoutes(fastify: FastifyInstance) {
 
 				await deleteThing(fastify.mysql, request.params.thingId);
 				request.log.info({ thingId: request.params.thingId }, 'Thing deleted');
+				if (fastify.meiliClient) {
+					deleteThingFromSearch(fastify.meiliClient, request.params.thingId, request.log)
+						.catch((err) => request.log.error(err, 'Meilisearch delete failed'));
+				}
 				return reply.code(204).send();
 			} catch (error) {
 				request.log.error(error);

@@ -16,6 +16,8 @@ import { votesPlugin } from './plugins/votes/votes.js';
 import { bookmarksPlugin } from './plugins/bookmarks/bookmarks.js';
 import { authorPlugin } from './plugins/author/author.js';
 import { cmsPlugin } from './plugins/cms/cms.js';
+import searchPlugin from './plugins/search/search.js';
+import { searchRoutes } from './plugins/search/searchRoutes.js';
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
 
@@ -40,6 +42,7 @@ fastify.register(cors, {
 	credentials: true,
 });
 fastify.register(databasePlugin);
+fastify.register(searchPlugin);
 fastify.register(authPlugin);
 fastify.register(authNotifierPlugin);
 fastify.register(swaggerPlugin);
@@ -52,6 +55,7 @@ fastify.register(votesPlugin, { prefix: '/things' });
 fastify.register(bookmarksPlugin, { prefix: '/bookmarks' });
 fastify.register(authorPlugin, { prefix: '/author' });
 fastify.register(cmsPlugin, { prefix: '/cms' });
+fastify.register(searchRoutes, { prefix: '/search' });
 
 async function main() {
 	await fastify.listen({

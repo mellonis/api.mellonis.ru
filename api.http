@@ -291,6 +291,17 @@ Authorization: Bearer {{login.response.body.accessToken}}
 DELETE {{host}}/cms/things/1
 Authorization: Bearer {{login.response.body.accessToken}}
 
+### ---- Search ----
+
+### Search things (public)
+GET {{host}}/search?q=ночь&limit=10
+
+### ---- CMS: Search Reindex ----
+
+### Reindex all things (requires editor + canEditContent)
+POST {{host}}/cms/search/reindex
+Authorization: Bearer {{login.response.body.accessToken}}
+
 ### ---- Votes ----
 
 ### Cast or update a vote (requires auth + canVote)

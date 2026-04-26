@@ -44,9 +44,11 @@ SMTP_FROM_ADDRESS=notifier@mellonis.ru   # required, email address for From head
 ALLOWED_ORIGINS=https://poetry.mellonis.ru,https://poetry-old2.mellonis.ru  # required, comma-separated whitelist of client origins (CORS + email links)
 WEBAUTHN_RP_ID=mellonis.ru       # optional, WebAuthn Relying Party ID (default: mellonis.ru, use "localhost" for local dev)
 ADMIN_NOTIFY_EMAIL=admin@mellonis.ru  # optional, receives notifications on votes, registrations, account deletions
+MEILI_URL=http://poetry-meilisearch:7700  # optional, Meilisearch host (default: http://poetry-meilisearch:7700)
+MEILI_MASTER_KEY=<key>               # optional (required for search to work), shared with Meilisearch container
 ```
 
-See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). `CONNECTION_STRING`, `JWT_SECRET`, and `ALLOWED_ORIGINS` are validated on startup. SMTP vars are required only in production (`NODE_ENV=production`); in dev mode, notifications are logged to the console instead.
+See `.env.example` for a template. The server listens on `0.0.0.0:3000` (port overridable via `PORT` env var). `CONNECTION_STRING`, `JWT_SECRET`, and `ALLOWED_ORIGINS` are validated on startup. SMTP vars are required only in production (`NODE_ENV=production`); in dev mode, notifications are logged to the console instead. If `MEILI_MASTER_KEY` is not set, search is disabled (sync calls become no-ops, `GET /search` returns 503).
 
 ## Architecture
 
@@ -71,11 +73,13 @@ Fastify app using a plugin-based structure under `src/plugins/`:
   - Returns updated `{ plus, minus }` counts
   - Sends `ADMIN_NOTIFY_EMAIL` on every vote action including removal (fire-and-forget, includes thing title)
 - **`author/`** — routes prefixed `/author`. `GET /` returns author biography text, date, and optional SEO fields. Sourced from `news` table (id=1). No auth required
+- **`search/`** — Meilisearch integration. `search.ts` is a `fastify-plugin` that decorates `fastify.meiliClient` (nullable — `null` when `MEILI_MASTER_KEY` is not set). `searchRoutes.ts` provides public `GET /search?q=&limit=&offset=` (always filters `statusId=2`). `searchSync.ts` has `syncThingToSearch` / `deleteThingFromSearch` / `reindexAll`. `textStripping.ts` strips BBCode tags and `{note}` markers for indexing. CMS thing mutations fire-and-forget sync to Meilisearch after DB write.
 - **`cms/`** — routes prefixed `/cms`. Two-layer auth: all routes require `verifyJwt` + editor role (`isEditor`); mutations require `canEditContent` right (bit 12). Shared hook in `hooks.ts`. Sub-plugins:
   - `authorRoutes.ts` — GET + PUT `/cms/author` for about page editing
   - `sectionRoutes.ts` — section types, section statuses, sections CRUD + reorder
   - `sectionThingRoutes.ts` — `GET /things` lists all things for the picker + things within sections CRUD + reorder
-  - `thingRoutes.ts` — thing CRUD: GET/POST/PUT/DELETE `/cms/things/:thingId` with notes, SEO, info sync + thing statuses/categories reference data
+  - `thingRoutes.ts` — thing CRUD: GET/POST/PUT/DELETE `/cms/things/:thingId` with notes, SEO, info sync + thing statuses/categories reference data. Create/update/delete fire-and-forget sync to Meilisearch
+  - `searchCmsRoutes.ts` — `POST /cms/search/reindex` for full reindex of all things
   - Sections: `statusId` (1=Preparing, 2=Published, 3=Editing, 4=Withdrawn); public API filters `WHERE section_status_id IN (2, 3)`
   - Reorder endpoints accept plain array body `[id1, id2, ...]`
   - Section settings: API `{ showAll, reverseOrder }` ↔ DB `{ show_all, things_order }`; stored as `NULL` when all defaults
