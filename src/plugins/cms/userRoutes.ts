@@ -29,6 +29,8 @@ import { maskEmail } from '../../lib/maskEmail.js';
 
 const adminHooks = [requireAdmin, requireCanEditUsers];
 
+const ROOT_ADMIN_ID = 1;
+
 export async function userRoutes(fastify: FastifyInstance) {
 	// --- Groups reference ---
 
@@ -180,8 +182,18 @@ export async function userRoutes(fastify: FastifyInstance) {
 				}
 
 				const isSelf = userId === request.user!.sub;
+				const isRootAdmin = userId === ROOT_ADMIN_ID;
 				const newGroupId = request.body.groupId ?? currentUser.groupId;
 				const newRights = request.body.rights ?? currentUser.rights;
+
+				// Root admin protection
+				if (isRootAdmin && request.body.groupId !== undefined && request.body.groupId !== currentUser.groupId) {
+					return reply.code(403).send({ error: 'forbidden', message: 'Cannot change root admin group' });
+				}
+
+				if (isRootAdmin && (newRights & (1 << 2)) !== 0 && !currentUser.isBanned) {
+					return reply.code(403).send({ error: 'forbidden', message: 'Cannot ban root admin' });
+				}
 
 				// Self-protection: cannot change own group
 				if (isSelf && request.body.groupId !== undefined && request.body.groupId !== currentUser.groupId) {
@@ -200,6 +212,11 @@ export async function userRoutes(fastify: FastifyInstance) {
 
 				if (isSelf && !resolvedCanEditUsers) {
 					return reply.code(409).send({ error: 'Cannot remove own canEditUsers right' });
+				}
+
+				// Root admin protection: cannot remove canEditUsers
+				if (isRootAdmin && !resolvedCanEditUsers) {
+					return reply.code(403).send({ error: 'forbidden', message: 'Cannot remove root admin canEditUsers right' });
 				}
 
 				await updateCmsUser(fastify.mysql, userId, newGroupId, newRights);
@@ -234,6 +251,10 @@ export async function userRoutes(fastify: FastifyInstance) {
 		handler: async (request: FastifyRequest<{ Params: UserIdParam }>, reply) => {
 			try {
 				const { userId } = request.params;
+
+				if (userId === ROOT_ADMIN_ID) {
+					return reply.code(403).send({ error: 'forbidden', message: 'Cannot delete root admin' });
+				}
 
 				if (userId === request.user!.sub) {
 					return reply.code(403).send({ error: 'forbidden', message: 'Cannot delete self' });
