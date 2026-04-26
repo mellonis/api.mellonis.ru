@@ -2,7 +2,7 @@ import type { Meilisearch } from 'meilisearch';
 import type { MySQLPromisePool, MySQLRowDataPacket } from '@fastify/mysql';
 import type { FastifyBaseLogger } from 'fastify';
 import { withConnection } from '../../lib/databaseHelpers.js';
-import { prepareText, prepareNotes, extractAudioTitles } from './textStripping.js';
+import { prepareText, prepareNotes, extractAudioTitles, extractInlineNotes, stripBBCode } from './textStripping.js';
 import { SEARCH_INDEX_NAME } from './search.js';
 
 interface ThingSearchDocument {
@@ -41,16 +41,23 @@ const allThingIdsQuery = `
 const buildDocument = (
 	row: MySQLRowDataPacket,
 	noteRows: MySQLRowDataPacket[],
-): ThingSearchDocument => ({
-	id: row.id as number,
-	title: prepareText((row.title as string) ?? ''),
-	firstLine: (row.firstLines as string)?.split('\n')[0] ?? '',
-	text: prepareText(row.text as string),
-	notes: prepareNotes(noteRows.map((n) => ({ text: n.text as string }))),
-	audioTitles: extractAudioTitles((row.info as string) ?? null).join('\n'),
-	categoryId: row.categoryId as number,
-	statusId: row.statusId as number,
-});
+): ThingSearchDocument => {
+	const rawText = row.text as string;
+	const inlineNotes = extractInlineNotes(rawText).map(stripBBCode);
+	const dbNotes = prepareNotes(noteRows.map((n) => ({ text: n.text as string })));
+	const allNotes = [dbNotes, ...inlineNotes].filter(Boolean).join('\n');
+
+	return {
+		id: row.id as number,
+		title: prepareText((row.title as string) ?? ''),
+		firstLine: (row.firstLines as string)?.split('\n')[0] ?? '',
+		text: prepareText(rawText),
+		notes: allNotes,
+		audioTitles: extractAudioTitles((row.info as string) ?? null).join('\n'),
+		categoryId: row.categoryId as number,
+		statusId: row.statusId as number,
+	};
+};
 
 export const syncThingToSearch = async (
 	client: Meilisearch,
