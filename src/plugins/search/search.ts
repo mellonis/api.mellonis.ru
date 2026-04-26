@@ -10,6 +10,7 @@ declare module 'fastify' {
 }
 
 const INDEX_NAME = 'things';
+const INDEX_VERSION = 3;
 
 export { INDEX_NAME as SEARCH_INDEX_NAME };
 
@@ -36,12 +37,17 @@ export default fp(async (fastify: FastifyInstance) => {
 	fastify.decorate('meiliClient', client);
 	fastify.log.info({ url }, 'Meilisearch connected');
 
-	const { numberOfDocuments } = await index.getStats();
+	await client.createIndex('_meta', { primaryKey: 'key' }).catch(() => {});
+	const metaIndex = client.index('_meta');
+	const currentVersion = await metaIndex.getDocument('index_version').then((d) => (d as { version?: number }).version).catch(() => null);
 
-	if (numberOfDocuments === 0) {
-		fastify.log.info('Search index is empty — reindexing all things');
+	if (currentVersion !== INDEX_VERSION) {
+		fastify.log.info({ currentVersion, targetVersion: INDEX_VERSION }, 'Search index version changed — reindexing');
 		reindexAll(client, fastify.mysql, fastify.log)
-			.then((count) => fastify.log.info({ count }, 'Initial reindex complete'))
-			.catch((err) => fastify.log.error(err, 'Initial reindex failed'));
+			.then(async (count) => {
+				await metaIndex.addDocuments([{ key: 'index_version', version: INDEX_VERSION }]);
+				fastify.log.info({ count, version: INDEX_VERSION }, 'Reindex complete');
+			})
+			.catch((err) => fastify.log.error(err, 'Reindex failed'));
 	}
 }, { name: 'search' });
