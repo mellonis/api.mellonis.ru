@@ -316,7 +316,7 @@ export async function userRoutes(fastify: FastifyInstance) {
 
 				request.log.info({ userId: user.id, login: user.login, triggeredBy: request.user!.sub }, 'Admin resent activation');
 
-				await fastify.authNotifier.sendAdminResendActivation(user.email, user.login, key, fastify.resolveOrigin(request));
+				await fastify.authNotifier.sendAdminResendActivation(user.email!, user.login!, key, fastify.resolveOrigin(request));
 
 				return { message: 'Activation email sent' };
 			} catch (error) {
@@ -361,7 +361,7 @@ export async function userRoutes(fastify: FastifyInstance) {
 
 				request.log.info({ userId: user.id, login: user.login, triggeredBy: request.user!.sub }, 'Admin triggered password reset');
 
-				await fastify.authNotifier.sendAdminPasswordReset(user.email, user.login, key, fastify.resolveOrigin(request));
+				await fastify.authNotifier.sendAdminPasswordReset(user.email!, user.login!, key, fastify.resolveOrigin(request));
 
 				return { message: 'Password reset email sent' };
 			} catch (error) {
