@@ -39,6 +39,8 @@ import {
 	deleteThingSeoQuery,
 	upsertThingInfoQuery,
 	deleteThingInfoQuery,
+	upsertThingReviewQuery,
+	deleteThingReviewQuery,
 	insertThingNoteQuery,
 	updateThingNoteQuery,
 	deleteThingNotesExceptQuery,
@@ -434,6 +436,7 @@ export interface CmsThing {
 	seoDescription: string | null;
 	seoKeywords: string | null;
 	info: string | null;
+	review: string | null;
 }
 
 export const getThingStatuses = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
@@ -476,6 +479,7 @@ export const getCmsThing = async (mysql: MySQLPromisePool, thingId: number): Pro
 			seoDescription: (row.seoDescription as string) ?? null,
 			seoKeywords: (row.seoKeywords as string) ?? null,
 			info: (row.info as string) ?? null,
+			review: (row.review as string) ?? null,
 		};
 	});
 
@@ -487,7 +491,7 @@ export const createThing = async (
 		firstLines: string | null; firstLinesAutoGenerating: boolean; excludeFromDaily: boolean;
 		editingDone: boolean;
 		notes: { text: string }[];
-		seoDescription: string | null; seoKeywords: string | null; info: string | null;
+		seoDescription: string | null; seoKeywords: string | null; info: string | null; review: string | null;
 	},
 ): Promise<number> =>
 	withConnection(mysql, async (connection) => {
@@ -508,6 +512,10 @@ export const createThing = async (
 
 			if (data.info) {
 				await connection.query(upsertThingInfoQuery, [thingId, data.info]);
+			}
+
+			if (data.review) {
+				await connection.query(upsertThingReviewQuery, [thingId, data.review]);
 			}
 
 			for (let i = 0; i < data.notes.length; i++) {
@@ -531,7 +539,7 @@ export const updateThing = async (
 		firstLines?: string | null; firstLinesAutoGenerating?: boolean; excludeFromDaily?: boolean;
 		editingDone?: boolean;
 		notes?: { id?: number; text: string }[];
-		seoDescription?: string | null; seoKeywords?: string | null; info?: string | null;
+		seoDescription?: string | null; seoKeywords?: string | null; info?: string | null; review?: string | null;
 	},
 	current: CmsThing,
 ): Promise<void> =>
@@ -575,6 +583,15 @@ export const updateThing = async (
 				}
 			}
 
+			// Review upsert/delete (raw Markdown; empty = cleared)
+			if (data.review !== undefined) {
+				if (data.review) {
+					await connection.query(upsertThingReviewQuery, [thingId, data.review]);
+				} else {
+					await connection.query(deleteThingReviewQuery, [thingId]);
+				}
+			}
+
 			// Notes sync (array position = order)
 			if (data.notes !== undefined) {
 				const keepIds = data.notes.filter((n) => n.id).map((n) => n.id as number);
@@ -612,6 +629,7 @@ export const deleteThing = async (mysql: MySQLPromisePool, thingId: number): Pro
 			await connection.query(deleteAllThingNotesQuery, [thingId]);
 			await connection.query(deleteThingSeoQuery, [thingId]);
 			await connection.query(deleteThingInfoQuery, [thingId]);
+			await connection.query(deleteThingReviewQuery, [thingId]);
 			await connection.query(deleteThingQuery, [thingId]);
 			await connection.commit();
 		} catch (error) {

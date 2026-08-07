@@ -73,6 +73,43 @@ describe('updateThingRequest normalization', () => {
 	});
 });
 
+describe('review field — raw Markdown, no normalization', () => {
+	it('create: stores review verbatim (backticks, ---, -- untouched)', () => {
+		const parsed = createThingRequest.parse({
+			text: 'Body',
+			categoryId: 1,
+			finishDate: '1990',
+			review: 'Черновик: `код`, --- и -- остаются как есть',
+		});
+		expect(parsed.review).toBe('Черновик: `код`, --- и -- остаются как есть');
+	});
+
+	it('create: defaults to null when omitted', () => {
+		const parsed = createThingRequest.parse({ text: 'Body', categoryId: 1, finishDate: '1990' });
+		expect(parsed.review).toBeNull();
+	});
+
+	it('create: whitespace-only becomes null', () => {
+		const parsed = createThingRequest.parse({ text: 'Body', categoryId: 1, finishDate: '1990', review: ' \n\t ' });
+		expect(parsed.review).toBeNull();
+	});
+
+	it('create: preserves surrounding whitespace on non-empty content', () => {
+		const parsed = createThingRequest.parse({ text: 'Body', categoryId: 1, finishDate: '1990', review: ' с пробелами ' });
+		expect(parsed.review).toBe(' с пробелами ');
+	});
+
+	it('update: stays undefined when omitted', () => {
+		const parsed = updateThingRequest.parse({});
+		expect(parsed.review).toBeUndefined();
+	});
+
+	it('update: empty string becomes null', () => {
+		const parsed = updateThingRequest.parse({ review: '' });
+		expect(parsed.review).toBeNull();
+	});
+});
+
 describe('updateAuthorRequest normalization', () => {
 	it('normalizes text', () => {
 		const parsed = updateAuthorRequest.parse({
@@ -149,7 +186,7 @@ describe('editingDone wire fields', () => {
 			id: 1, title: null, text: 't', categoryId: 1, statusId: 1,
 			startDate: null, finishDate: '2026-01-01', firstLines: null,
 			firstLinesAutoGenerating: false, excludeFromDaily: false,
-			notes: [], seoDescription: null, seoKeywords: null, info: null,
+			notes: [], seoDescription: null, seoKeywords: null, info: null, review: null,
 		};
 		expect(() => cmsThingResponse.parse(base)).toThrow();
 		expect(cmsThingResponse.parse({ ...base, editingDoneAt: null, lastModified: null }).editingDoneAt).toBeNull();

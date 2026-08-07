@@ -33,6 +33,26 @@ function createMockMysql(...responses: Record<string, unknown>[][]): MySQLPromis
 	} as unknown as MySQLPromisePool;
 }
 
+function createRecordingMysql(...responses: Record<string, unknown>[][]) {
+	let callIndex = 0;
+	const calls: { sql: string; params: unknown[] }[] = [];
+	const pool = {
+		getConnection: vi.fn().mockImplementation(() =>
+			Promise.resolve({
+				query: vi.fn().mockImplementation((sql: string, params?: unknown[]) => {
+					calls.push({ sql, params: params ?? [] });
+					return Promise.resolve([responses[callIndex++] ?? []]);
+				}),
+				beginTransaction: vi.fn().mockResolvedValue(undefined),
+				commit: vi.fn().mockResolvedValue(undefined),
+				rollback: vi.fn().mockResolvedValue(undefined),
+				release: vi.fn(),
+			})
+		),
+	} as unknown as MySQLPromisePool;
+	return { pool, calls };
+}
+
 const mockNotifier = {
 	sendActivation: vi.fn().mockResolvedValue(undefined),
 	sendPasswordReset: vi.fn().mockResolvedValue(undefined),
@@ -427,6 +447,36 @@ describe('GET /cms/things/:thingId — date format', () => {
 	});
 });
 
+describe('GET /cms/things/:thingId — review field', () => {
+	it('returns stored review text verbatim', async () => {
+		const app = await buildApp(createMockMysql([{ ...thingRow, review: 'Ранний **черновик** с `кодом`' }], []));
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/things/42',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().review).toBe('Ранний **черновик** с `кодом`');
+	});
+
+	it('returns null when no review row exists', async () => {
+		const app = await buildApp(createMockMysql([thingRow], []));
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/things/42',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().review).toBeNull();
+	});
+});
+
 describe('POST /cms/things — date format', () => {
 	const basePayload = {
 		title: null,
@@ -532,26 +582,6 @@ describe('PUT /cms/things/:thingId — editingDone semantics', () => {
 		editingDoneAt, lastModified,
 		seoDescription: null, seoKeywords: null, info: null,
 	});
-
-	function createRecordingMysql(...responses: Record<string, unknown>[][]) {
-		let callIndex = 0;
-		const calls: { sql: string; params: unknown[] }[] = [];
-		const pool = {
-			getConnection: vi.fn().mockImplementation(() =>
-				Promise.resolve({
-					query: vi.fn().mockImplementation((sql: string, params?: unknown[]) => {
-						calls.push({ sql, params: params ?? [] });
-						return Promise.resolve([responses[callIndex++] ?? []]);
-					}),
-					beginTransaction: vi.fn().mockResolvedValue(undefined),
-					commit: vi.fn().mockResolvedValue(undefined),
-					rollback: vi.fn().mockResolvedValue(undefined),
-					release: vi.fn(),
-				})
-			),
-		} as unknown as MySQLPromisePool;
-		return { pool, calls };
-	}
 
 	const putThing = async (body: Record<string, unknown>, current = thingRow(null, '2026-07-01T10:00:00'), updated = thingRow('2026-07-05T12:00:00', '2026-07-05T12:00:00')) => {
 		const { pool, calls } = createRecordingMysql(
@@ -1084,5 +1114,147 @@ describe('GET /cms/things-of-the-day/calendar', () => {
 
 		expect(response.statusCode).toBe(200);
 		expect(response.json()).toEqual({});
+	});
+});
+
+describe('CMS thing review persistence', () => {
+	const reviewRow = {
+		id: 99, title: null, text: 'Body', categoryId: 1, statusId: 1,
+		startDate: null, finishDate: '1990-05-12', firstLines: null,
+		firstLinesAutoGenerating: 0, excludeFromDaily: 0,
+		editingDoneAt: null, lastModified: null,
+		seoDescription: null, seoKeywords: null, info: null, review: null,
+	};
+
+	const md = 'Черновик: `код`, --- и -- остаются как есть';
+
+	it('POST with review upserts thing_review verbatim', async () => {
+		const { pool, calls } = createRecordingMysql(
+			[{ insertId: 99 }],                    // INSERT INTO thing
+			[],                                    // INSERT INTO thing_review
+			[{ ...reviewRow, review: md }], [],    // getCmsThing refetch + notes
+		);
+		const app = await buildApp(pool);
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/things',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { title: null, text: 'Body', categoryId: 1, notes: [], finishDate: '1990-05-12', review: md },
+		});
+
+		expect(response.statusCode).toBe(201);
+		const reviewCall = calls.find((c) => c.sql.includes('INSERT INTO thing_review'));
+		expect(reviewCall).toBeDefined();
+		expect(reviewCall!.params[1]).toBe(md);
+		expect(response.json().review).toBe(md);
+	});
+
+	it('POST without review touches no thing_review row', async () => {
+		const { pool, calls } = createRecordingMysql(
+			[{ insertId: 99 }],
+			[reviewRow], [],
+		);
+		const app = await buildApp(pool);
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'POST',
+			url: '/cms/things',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { title: null, text: 'Body', categoryId: 1, notes: [], finishDate: '1990-05-12' },
+		});
+
+		expect(response.statusCode).toBe(201);
+		// Narrowed to the write forms: cmsThingByIdQuery's LEFT JOIN thing_review
+		// (exercised by the post-create refetch) would make a bare substring match
+		// true regardless of whether a write happened — reads don't touch rows.
+		expect(calls.some((c) => c.sql.includes('INSERT INTO thing_review'))).toBe(false);
+		expect(calls.some((c) => c.sql.includes('DELETE FROM thing_review'))).toBe(false);
+	});
+
+	const putThingReview = async (reviewInBody: Record<string, unknown>) => {
+		const { pool, calls } = createRecordingMysql(
+			[reviewRow], [],                       // getCmsThing (current) + notes
+			[],                                    // UPDATE thing
+			[],                                    // thing_review upsert or delete
+			[{ ...reviewRow, review: md }], [],    // getCmsThing refetch + notes
+		);
+		const app = await buildApp(pool);
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'PUT',
+			url: '/cms/things/99',
+			headers: { authorization: `Bearer ${token}` },
+			payload: reviewInBody,
+		});
+
+		return { response, calls };
+	};
+
+	it('PUT with review string upserts verbatim', async () => {
+		const { response, calls } = await putThingReview({ review: md });
+		expect(response.statusCode).toBe(200);
+		const call = calls.find((c) => c.sql.includes('INSERT INTO thing_review'));
+		expect(call).toBeDefined();
+		expect(call!.params[1]).toBe(md);
+	});
+
+	it('PUT with review: null deletes the row', async () => {
+		const { response, calls } = await putThingReview({ review: null });
+		expect(response.statusCode).toBe(200);
+		expect(calls.some((c) => c.sql.includes('DELETE FROM thing_review'))).toBe(true);
+	});
+
+	it('PUT with whitespace-only review deletes the row', async () => {
+		const { response, calls } = await putThingReview({ review: ' \n ' });
+		expect(response.statusCode).toBe(200);
+		expect(calls.some((c) => c.sql.includes('DELETE FROM thing_review'))).toBe(true);
+		expect(calls.some((c) => c.sql.includes('INSERT INTO thing_review'))).toBe(false);
+	});
+
+	it('PUT omitting review leaves the row untouched', async () => {
+		// Own mock, not the shared putThingReview helper: when review is omitted
+		// no thing_review query fires, so the helper's 6-slot response array
+		// (sized for the review-op tests) would shift and misfeed the refetch.
+		const { pool, calls } = createRecordingMysql(
+			[reviewRow], [],   // getCmsThing (current) + notes
+			[],                // UPDATE thing — omitted review fires no query
+			[reviewRow], [],   // getCmsThing refetch + notes (review still null — untouched)
+		);
+		const app = await buildApp(pool);
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'PUT',
+			url: '/cms/things/99',
+			headers: { authorization: `Bearer ${token}` },
+			payload: { title: 'Новое название' },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(calls.some((c) => c.sql.includes('INSERT INTO thing_review'))).toBe(false);
+		expect(calls.some((c) => c.sql.includes('DELETE FROM thing_review'))).toBe(false);
+	});
+
+	it('DELETE thing clears its review row', async () => {
+		const { pool, calls } = createRecordingMysql(
+			[reviewRow], [],   // getCmsThing (current) + notes
+			[{ cnt: 0 }],      // sections count
+			[], [], [], [], [], // deleteThing txn: notes, seo, info, review, thing
+		);
+		const app = await buildApp(pool);
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'DELETE',
+			url: '/cms/things/99',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(204);
+		expect(calls.some((c) => c.sql.includes('DELETE FROM thing_review'))).toBe(true);
 	});
 });

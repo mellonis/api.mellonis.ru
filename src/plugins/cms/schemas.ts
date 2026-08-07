@@ -12,6 +12,12 @@ const norm = <T extends string | null | undefined>(v: T): T =>
 const normInfo = <T extends string | null | undefined>(v: T): T =>
 	typeof v === 'string' ? (normalizeLegacyInfoJson(v) as T) : v;
 
+// Review is raw Markdown — exempt from legacy normalization (backtick / --- /
+// -- carry Markdown syntax there). Whitespace-only means "cleared": the row
+// is deleted, so it must arrive as null, not as a blank string.
+const emptyToNull = <T extends string | null | undefined>(v: T): T | null =>
+	typeof v === 'string' && v.trim() === '' ? null : v;
+
 // --- Section types reference ---
 
 export const sectionTypeItem = z.object({
@@ -174,6 +180,7 @@ export const cmsThingResponse = z.object({
 	seoDescription: z.string().nullable(),
 	seoKeywords: z.string().nullable(),
 	info: z.string().nullable(),
+	review: z.string().nullable(),
 });
 
 export const thingIdParam = z.object({
@@ -195,6 +202,7 @@ export const createThingRequest = z.object({
 	seoDescription: z.string().nullable().default(null),
 	seoKeywords: z.string().nullable().default(null),
 	info: z.string().nullable().default(null).transform(normInfo),
+	review: z.string().nullable().default(null).transform(emptyToNull),
 }).refine(seoFieldsTogether, seoFieldsTogetherMessage);
 
 export const updateThingRequest = z.object({
@@ -212,6 +220,7 @@ export const updateThingRequest = z.object({
 	seoDescription: z.string().nullable().optional(),
 	seoKeywords: z.string().nullable().optional(),
 	info: z.string().nullable().optional().transform(normInfo),
+	review: z.string().nullable().optional().transform(emptyToNull),
 }).refine(seoFieldsTogether, seoFieldsTogetherMessage);
 
 // --- Things-of-the-day calendar ---
