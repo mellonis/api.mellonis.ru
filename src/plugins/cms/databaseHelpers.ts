@@ -434,6 +434,7 @@ export interface CmsThing {
 	seoDescription: string | null;
 	seoKeywords: string | null;
 	info: string | null;
+	review: string | null;
 }
 
 export const getThingStatuses = async (mysql: MySQLPromisePool): Promise<SectionType[]> =>
@@ -476,6 +477,7 @@ export const getCmsThing = async (mysql: MySQLPromisePool, thingId: number): Pro
 			seoDescription: (row.seoDescription as string) ?? null,
 			seoKeywords: (row.seoKeywords as string) ?? null,
 			info: (row.info as string) ?? null,
+			review: (row.review as string) ?? null,
 		};
 	});
 

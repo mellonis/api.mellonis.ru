@@ -427,6 +427,36 @@ describe('GET /cms/things/:thingId — date format', () => {
 	});
 });
 
+describe('GET /cms/things/:thingId — review field', () => {
+	it('returns stored review text verbatim', async () => {
+		const app = await buildApp(createMockMysql([{ ...thingRow, review: 'Ранний **черновик** с `кодом`' }], []));
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/things/42',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().review).toBe('Ранний **черновик** с `кодом`');
+	});
+
+	it('returns null when no review row exists', async () => {
+		const app = await buildApp(createMockMysql([thingRow], []));
+		const token = await getEditorToken();
+
+		const response = await app.inject({
+			method: 'GET',
+			url: '/cms/things/42',
+			headers: { authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(response.json().review).toBeNull();
+	});
+});
+
 describe('POST /cms/things — date format', () => {
 	const basePayload = {
 		title: null,

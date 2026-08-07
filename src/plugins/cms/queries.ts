@@ -207,10 +207,12 @@ export const cmsThingByIdQuery = `
 		DATE_FORMAT(t.editing_done_at, '%Y-%m-%dT%H:%i:%s') AS editingDoneAt,
 		ts.description                 AS seoDescription,
 		ts.keywords                    AS seoKeywords,
-		ti.text                        AS info
+		ti.text                        AS info,
+		tr.text                        AS review
 	FROM thing t
 	LEFT JOIN thing_seo ts ON ts.r_thing_id = t.id
 	LEFT JOIN thing_info ti ON ti.r_thing_id = t.id
+	LEFT JOIN thing_review tr ON tr.r_thing_id = t.id
 	WHERE t.id = ?;
 `;
 
