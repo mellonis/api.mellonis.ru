@@ -94,6 +94,11 @@ describe('review field — raw Markdown, no normalization', () => {
 		expect(parsed.review).toBeNull();
 	});
 
+	it('create: preserves surrounding whitespace on non-empty content', () => {
+		const parsed = createThingRequest.parse({ text: 'Body', categoryId: 1, finishDate: '1990', review: ' с пробелами ' });
+		expect(parsed.review).toBe(' с пробелами ');
+	});
+
 	it('update: stays undefined when omitted', () => {
 		const parsed = updateThingRequest.parse({});
 		expect(parsed.review).toBeUndefined();

@@ -264,6 +264,16 @@ export const deleteThingInfoQuery = `
 	DELETE FROM thing_info WHERE r_thing_id = ?;
 `;
 
+export const upsertThingReviewQuery = `
+	INSERT INTO thing_review (r_thing_id, text)
+	VALUES (?, ?)
+	ON DUPLICATE KEY UPDATE text = VALUES(text);
+`;
+
+export const deleteThingReviewQuery = `
+	DELETE FROM thing_review WHERE r_thing_id = ?;
+`;
+
 export const insertThingNoteQuery = `
 	INSERT INTO thing_note (r_thing_id, text, \`order\`) VALUES (?, ?, ?);
 `;
