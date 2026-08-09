@@ -10,6 +10,14 @@ describe('stripBBCode', () => {
 		expect(stripBBCode('[q]quote[/q]')).toBe('\u00ABquote\u00BB');
 	});
 
+	test('strips nested quote tags to depth-matched pairs (\u00AB\u00BB, \u201E\u201C, \u201A\u2018)', () => {
+		expect(stripBBCode('[q]a [q]b [q]c[/q][/q][/q]')).toBe('\u00ABa \u201Eb \u201Ac\u2018\u201C\u00BB');
+	});
+
+	test('strips an unmatched closing quote tag to \u00BB', () => {
+		expect(stripBBCode('quote[/q]')).toBe('quote\u00BB');
+	});
+
 	test('strips nested tags', () => {
 		expect(stripBBCode('[b][i]text[/i][/b]')).toBe('text');
 	});
