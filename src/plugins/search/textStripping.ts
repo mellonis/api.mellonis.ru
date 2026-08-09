@@ -1,7 +1,22 @@
+// Quote pairs by [q] nesting depth, mirroring the site renderers' plain-text
+// mode: L1 «», L2 „“, L3+ ‚‘.
+const QUOTE_PAIRS = [['«', '»'], ['„', '“'], ['‚', '‘']] as const;
+
+const replaceQTags = (text: string): string => {
+	let depth = 0;
+	return text.replace(/\[(\/?)q]/g, (_match, closing) => {
+		if (closing) {
+			depth = Math.max(0, depth - 1);
+			return QUOTE_PAIRS[Math.min(depth, QUOTE_PAIRS.length - 1)][1];
+		}
+		const open = QUOTE_PAIRS[Math.min(depth, QUOTE_PAIRS.length - 1)][0];
+		depth += 1;
+		return open;
+	});
+};
+
 const plainTextRules: [RegExp, string][] = [
 	[/<<([^>]*?)>>/g, '$1'],
-	[/\[q]/g, '«'],
-	[/\[\/q]/g, '»'],
 	[/\[img[^\]]*].*?\[\/img]?/igs, ''],
 	[/\[[^[]*]/g, ''],
 	[/\[\/[^[]*]/g, ''],
@@ -10,7 +25,7 @@ const plainTextRules: [RegExp, string][] = [
 export const stripBBCode = (text: string): string =>
 	plainTextRules.reduce(
 		(result, [pattern, replacement]) => result.replace(pattern, replacement),
-		text,
+		replaceQTags(text),
 	);
 
 export const stripNoteMarkers = (text: string): string =>
