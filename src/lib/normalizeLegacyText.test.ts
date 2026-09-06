@@ -10,6 +10,13 @@ describe('normalizeLegacyText', () => {
 		expect(normalizeLegacyText('[/q]--- сказал')).toBe('[/q]—\u00A0сказал');
 	});
 
+	it('replaces --- right after a <<N>> part marker with — + NBSP', () => {
+		// A part marker is a tag boundary too; without this the generic `--` rule
+		// left `<<1>>–- Спи` in stored text (thing 456, found 2026-09-06).
+		expect(normalizeLegacyText('<<1>>--- Спи, нежное')).toBe('<<1>>—\u00A0Спи, нежное');
+		expect(normalizeLegacyText('первая\n<<2>>--- вторая')).toBe('первая\n<<2>>—\u00A0вторая');
+	});
+
 	it('preserves capture groups after ( or :', () => {
 		expect(normalizeLegacyText('(--- пример')).toBe('(—\u00A0пример');
 		expect(normalizeLegacyText(': --- цитата')).toBe(': —\u00A0цитата');
@@ -53,6 +60,7 @@ describe('normalizeLegacyText', () => {
 		const samples = [
 			'--- первый',
 			'[/q]--- второй',
+			'<<1>>--- часть',
 			'(--- третий',
 			'слово --- слово',
 			'A -- B',

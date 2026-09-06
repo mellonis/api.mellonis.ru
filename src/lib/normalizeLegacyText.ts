@@ -5,10 +5,11 @@
 // longer apply these — stored text is already canonical.
 //
 // The 4 dash-context rules MUST run before the bare `--` rule, otherwise `---`
-// gets eaten as `–-`.
+// gets eaten as `–-`. A closing `]` or `>` (a `[tag]` or a `<<N>>` part marker)
+// counts as a boundary before `---`, same as a line start.
 const rules: [RegExp, string][] = [
 	[/^---\s/mg, '—\u00A0'],
-	[/]---\s/g, ']—\u00A0'],
+	[/([\]>])---\s/g, '$1—\u00A0'],
 	[/([(:])(\s)?\s*---\s/g, '$1$2—\u00A0'],
 	[/\s---/g, '\u00A0—'],
 	[/--/g, '–'],
