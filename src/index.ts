@@ -44,10 +44,14 @@ const fastify: FastifyInstance = Fastify({
 		}
 		: { transport: { target: 'pino-pretty' } },
 	genReqId: (req) => (req.headers['x-request-id'] as string) || randomUUID(),
-	// Trust exactly one proxy hop (nginx). Makes request.ip the real client
-	// IP from X-Forwarded-For so per-IP rate limiting works; `1` (not `true`)
-	// prevents a client from spoofing X-Forwarded-For to evade the limit.
-	trustProxy: 1,
+	// Trust the reverse proxy (nginx) so request.ip is the real client IP from
+	// X-Forwarded-For and per-IP rate limiting works. Fastify 5.12 dropped the
+	// numeric hop-count form because it cannot validate the immediate peer, so
+	// trust is granted by peer address instead: loopback plus the private
+	// ranges nginx and the DDEV router connect from (the docker bridge gateway
+	// on prod). The container port is bound to 127.0.0.1 on the host, so no
+	// public client can reach the app directly and spoof the header.
+	trustProxy: ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
 });
 
 fastify.addHook('onSend', async (request, reply) => {

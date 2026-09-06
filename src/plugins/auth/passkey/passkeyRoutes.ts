@@ -6,7 +6,7 @@ import {
 	generateAuthenticationOptions,
 	verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
-import type { AuthenticatorTransportFuture, RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
+import type { AuthenticatorTransport, RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server';
 import { z } from 'zod';
 import { errorResponse } from '../../../lib/schemas.js';
 import { actorFingerprint } from '../../../lib/actorFingerprint.js';
@@ -72,7 +72,7 @@ export async function passkeyRoutesPlugin(fastify: FastifyInstance) {
 				const existingPasskeys = await findPasskeysByUserId(fastify.mysql, userId);
 				const excludeCredentials = existingPasskeys.map((p) => ({
 					id: p.credentialId,
-					transports: (p.transports ?? undefined) as AuthenticatorTransportFuture[] | undefined,
+					transports: (p.transports ?? undefined) as AuthenticatorTransport[] | undefined,
 				}));
 
 				const options = await generateRegistrationOptions({
@@ -164,7 +164,7 @@ export async function passkeyRoutesPlugin(fastify: FastifyInstance) {
 		},
 		handler: async (request: FastifyRequest<{ Body: PasskeyLoginOptionsRequest }>) => {
 			try {
-				let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] | undefined;
+				let allowCredentials: { id: string; transports?: AuthenticatorTransport[] }[] | undefined;
 
 				if (request.body.login) {
 					const user = await findUserByLogin(fastify.mysql, request.body.login);
@@ -173,7 +173,7 @@ export async function passkeyRoutesPlugin(fastify: FastifyInstance) {
 						const passkeys = await findPasskeysByUserId(fastify.mysql, user.userId);
 						allowCredentials = passkeys.map((p) => ({
 							id: p.credentialId,
-							transports: (p.transports ?? undefined) as AuthenticatorTransportFuture[] | undefined,
+							transports: (p.transports ?? undefined) as AuthenticatorTransport[] | undefined,
 						}));
 					} else {
 						allowCredentials = [];
@@ -246,7 +246,7 @@ export async function passkeyRoutesPlugin(fastify: FastifyInstance) {
 						id: passkey.credentialId,
 						publicKey: new Uint8Array(passkey.publicKey),
 						counter: passkey.counter,
-						transports: (passkey.transports ?? undefined) as AuthenticatorTransportFuture[] | undefined,
+						transports: (passkey.transports ?? undefined) as AuthenticatorTransport[] | undefined,
 					},
 				});
 
